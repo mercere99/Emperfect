@@ -1,0 +1,40 @@
+:Header    // Code to include at the beginning of all tests.
+  #include <iostream>
+  #include "testing.hpp"
+
+  double SquareRoot(double x) { return x / 2.0; }
+
+:Output detail="normal/summary"
+:Output name="results.html", detail="normal/summary"
+:Output name="private/teacher-only.html", detail="normal/normal"
+:GradeFile name="grade.txt"
+
+// See README.md for formatting information and options
+:TestCase type="unit", name="Simple Tests", score=10.0  // A 10-point test case.  All code is used until next : line.
+  size_t x = 5;
+  size_t y = 8;
+  CHECK(x + 2 < y+1, "This is an error message.");
+
+  std::string str = "Test string.";
+  std::string error_middle = " multi-segment";
+  CHECK(str == "Test string.", "This is an error message for a", error_middle, " string test.");
+  CHECK(str == "Test string2.", "This is an error message for a string test that should fail.");
+
+:TestCase type="unit", name="Hidden Tests", score=40.0, hidden=true
+  CHECK(SquareRoot(4.0) == 2.0);
+  CHECK(SquareRoot(16.0) == 4.0);
+  CHECK(SquareRoot(1000000.0) == 1000.0, "Fails when tested on large values.");
+  CHECK(SquareRoot(0.0) == 0.0, "Fails when tested on ZERO.");
+
+:TestCase type="unit", name="Free Points", score=50.0
+  CHECK( 2+2 == 4);
+  CHECK( true );
+  CHECK( "abc" == "abc");
+
+:TestCase type="unit", name="NOT-Hidden This time", score=5.0
+  CHECK(SquareRoot(4.0) == 2.0);
+  CHECK(SquareRoot(16.0) == 4.0);
+  CHECK(SquareRoot(1000000.0) == 1000.0, "Fails when tested on large values.");
+  CHECK(SquareRoot(0.0) == 0.0, "Fails when tested on ZERO.");
+
+:TestCase type="io", name="Basic IO test", score=10
