@@ -26,7 +26,7 @@ Each TestCase starts with a `:Testcase` at the beginning of a line, followed by 
 | Setting | Description | Usage |
 | ------- | ----------- | ----- |
 | `type`  | `"unit"` will suppress main(); `"io"` (default) will run main() | type="unit" |
-| e`name`  | Name to use when reporting on test case (default="Test #", counting from 1).  | `name="1: Testing Square() function"` |
+| `name`  | Name to use when reporting on test case (default="Test #", counting from 1).  | `name="1: Testing Square() function"` |
 | `score` | Number of points a test case is worth. (default=10.0) | `score=30.0` |
 | `in_file` | Name of the file to use as standard input (default=none) | `in_file="input01.txt"` |
 | `out_file` | Expected output. If provided, must match (default=none) | `out_file="output01.txt"` |
