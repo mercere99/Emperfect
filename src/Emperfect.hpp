@@ -39,6 +39,16 @@ private:
     return str[0] == ':';
   }
 
+  // Load in a value for a setting that translates to a bool.
+  bool ParseBool(const std::string & input,
+                 const std::string & setting_name)
+  {
+    if (input == "true" || input == "1") return true;
+    if (input == "false" || input == "0") return false;
+    emp::notify::Error("Unknown testcase '", setting_name, "' value '", input, "'.");
+    return false; // Doesn't actually return since previous line triggers error.
+  }
+
   // Load a block of code from the file, using file_scan
   emp::vector<std::string> LoadCode() {
     return file_scan.ReadUntil( [this](std::string in){ return IsCommand(in); } );
@@ -68,8 +78,20 @@ private:
       "Trying to setup testcase, but no compile rules are in place.");
     auto setting_map = emp::slice_assign(args); // Load in all arguments for this command.
     tests.push_back();
-    for (const auto & [arg, value] : setting_map) {
-      if (arg == )
+    auto & test = tests.back();
+    for (auto [arg, value] : setting_map) {
+      if (value.size() && value[0] == '\"') value = emp::from_literal_string(value);
+
+      if (arg == "args") test.args = value;
+      else if (arg == "code_file") test.code_filename = value;
+      else if (arg == "hidden") test.hidden = ParseBool(value, "hidden");
+      else if (arg == "in_file") test.in_filename = value;
+      else if (arg == "match_case") test.match_case = ParseBool(value, "match_case");
+      else if (arg == "match_space") test.match_space = ParseBool(value, "match_space");
+      else if (arg == "name") test.name = value;
+      else if (arg == "out_file") test.out_filename = value;
+      else if (arg == "points") test.points = emp::from_string<double>(value);
+      else if (arg == "run_main") test.call_main = ParseBool(value, "run_main");
     }
   }
 
