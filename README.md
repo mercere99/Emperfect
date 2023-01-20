@@ -69,17 +69,17 @@ Standard out defaults to "txt"; files default to file extension.  The `detail` l
 
 ### The `:Testcase` Command
 
-Each TestCase starts with a `:Testcase` at the beginning of a line, followed by comma-separated settings.  Subsequent lines typically provide the testcase.  The following setting types are available:
+Each TestCase starts with a `:Testcase` at the beginning of a line, followed by comma-separated settings.  Subsequent lines typically provide the testcase.  The following setting arguments are available:
 
 | Setting       | Description                                              | Usage                     |
 | ------------- | -------------------------------------------------------- | ------------------------- |
-| `type`        | `"unit"` suppressed main(); `"io"` (default) runs main() | `type="unit"`             |
 | `name`        | Name to use when reporting on test case.                 | `name="1: Test Square() function"` |
-| `score`       | Number of points a test case is worth. (default=10.0)    | `score=30.0`              |
+| `args`        | Command line arguments to provide. (default=none)        | `args="1 2 3"`            | 
+| `run_main`    | Should student's main() function be run? (default=true)  | `run_main=true`             |
+| `points`      | Number of points a test case is worth. (default=10.0)    | `points=30.0`             |
 | `in_file`     | Name of the file to use as standard input (default=none) | `in_file="input01.txt"`   |
 | `out_file`    | Expected output. If provided, must match (default=none)  | `out_file="output01.txt"` |
 | `code_file`   | If provided, use file instead of local code that follows | `code_file="test01.cpp`   |
-| `args`        | Command line arguments to provide. (default=none)        | `args="1 2 3"`            | 
 | `hidden`      | Should this test case be hidden? (default=false)         | `hidden=true`             |
 | `match_case`  | Must output matches have same case? (default=true)       | `match_case=false`        |
 | `match_space` | Must output matches have same whitespace? (default=true) | `match_space=false`       |
@@ -87,7 +87,7 @@ Each TestCase starts with a `:Testcase` at the beginning of a line, followed by 
 Example:
 
 ```
-:TestCase type="unit", name="Simple Tests", score=10.0  // All code is used until next :line.
+:TestCase run_main=false, name="Simple Tests", points=10.0  // All code is used until next :line.
   size_t x = 5;
   size_t y = 8;
   CHECK(x + 2 < y+1, "This is an error message.");
