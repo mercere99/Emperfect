@@ -13,6 +13,7 @@
 
 #include <iostream>
 
+#include "emp/base/notify.hpp"
 #include "emp/base/vector.hpp"
 #include "emp/io/File.hpp"
 
@@ -69,7 +70,21 @@ private:
   // Add a new method of collecting output.
   void AddOutput(const std::string & args) {
     auto setting_map = emp::slice_assign(args); // Load in all arguments for this command.
-    outputs.push_back( SetupOutput(setting_map) );
+    outputs.push_back();
+    auto & output = outputs.back();
+
+    for (auto [arg, value] : setting_map) {
+      if (value.size() && value[0] == '\"') value = emp::from_literal_string(value);
+
+      if (arg == "detail") output.SetDetail(value);
+      else if (arg == "filename") output.filename = value;
+      else if (arg == "type") output.type = value;
+      else {
+        emp::notify::Error("Uknown :Output argument '", arg, "'.");
+      }
+    }
+    
+    output.FinalizeType();  // If type has not been set, set it.
   }
 
   // Add a new testcase.
@@ -92,6 +107,9 @@ private:
       else if (arg == "out_file") test.out_filename = value;
       else if (arg == "points") test.points = emp::from_string<double>(value);
       else if (arg == "run_main") test.call_main = ParseBool(value, "run_main");
+      else {
+        emp::notify::Error("Uknown :Testcase argument '", arg, "'.");
+      }
     }
   }
 
