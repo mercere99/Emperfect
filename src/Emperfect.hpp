@@ -15,6 +15,7 @@
 
 #include "emp/base/notify.hpp"
 #include "emp/base/vector.hpp"
+#include "emp/datastructs/map_utils.hpp"
 #include "emp/io/File.hpp"
 
 #include "OutputInfo.hpp"
@@ -29,6 +30,8 @@ private:
   emp::vector<OutputInfo> outputs;
   emp::vector<std::string> compile;
   emp::vector<std::string> header;
+
+  std::map<std::string, std::string> var_map; // Map of all usable variables.
 
   static constexpr size_t npos = static_cast<size_t>(-1);
 
@@ -50,6 +53,39 @@ private:
     return false; // Doesn't actually return since previous line triggers error.
   }
 
+  // Load new variables into var_map.
+  auto LoadVars(const std::string & args) {
+    auto setting_map = emp::slice_assign(args);
+    for (auto [var, value] : setting_map) {
+      var_map[var] = value;
+    }
+
+    // Return just the new vars.
+    return setting_map;
+  }
+
+  // Take an input line and fill out any variables, as needed.
+  std::string ApplyVars(const std::string & line) {
+    size_t next_pos = 0, var_start = 0;
+    std::string out_string;
+    while (var_start = line.find("${", next_pos) != std::string::npos) {
+      // Copy the string to the start of the variable.
+      out_string += line.substr(next_pos, var_start-next_pos);
+
+      // Replace the variable we found.
+      size_t var_end = line.find("}", var_start);
+      emp::notify::TestError(var_end == std::string::npos, "No end to variable on line: ", line);
+      std::string var_name = line.substr(var_start+2, var_end-var_start-2);
+      emp::notify::TestError(!emp::Has(var_map, var_name), "Unknown variable used: ", var_name);
+      out_string += var_map[var_name];
+
+      next_pos = var_end+1;
+    }
+    // Copy the remainder of the string.
+    out_string += line.substr(next_pos, var_start-next_pos);
+    return out_string;
+  }
+
   // Load a block of code from the file, using file_scan
   emp::vector<std::string> LoadCode() {
     return file_scan.ReadUntil( [this](std::string in){ return IsCommand(in); } );
@@ -57,19 +93,19 @@ private:
 
   // Setup a new compilation method.
   void SetCompile(const std::string & args) {
-    auto setting_map = emp::slice_assign(args); // Load in all arguments for this command.
+    auto setting_map = LoadVars(args);
     compile = LoadCode();
   }
 
   // Setup new header code.
   void SetHeader(const std::string & args) {
-    auto setting_map = emp::slice_assign(args); // Load in all arguments for this command.
+    auto setting_map = LoadVars(args);
     header = LoadCode();
   }
 
   // Add a new method of collecting output.
   void AddOutput(const std::string & args) {
-    auto setting_map = emp::slice_assign(args); // Load in all arguments for this command.
+    auto setting_map = LoadVars(args);
     outputs.push_back();
     auto & output = outputs.back();
 
@@ -83,7 +119,7 @@ private:
         emp::notify::Error("Uknown :Output argument '", arg, "'.");
       }
     }
-    
+
     output.FinalizeType();  // If type has not been set, set it.
   }
 
@@ -91,7 +127,7 @@ private:
   void AddTestcase(const std::string & args) {
     emp::notify::TestError(compile.size() == 0,
       "Trying to setup testcase, but no compile rules are in place.");
-    auto setting_map = emp::slice_assign(args); // Load in all arguments for this command.
+    auto setting_map = LoadVars(args);
     tests.push_back();
     auto & test = tests.back();
     for (auto [arg, value] : setting_map) {
@@ -114,7 +150,12 @@ private:
   }
 
 public:
-  Emperfect() : file_scan(input_file) { }
+  Emperfect() : file_scan(input_file) {
+    // Initialize default values
+    var_map["cpp"] = "emperfect_test_file_.cpp";
+    var_map["exe"] = "emperfect_test_exe_";
+    var_map["debug"] = "false";
+  }
 
   // Load test configurations from a stream.
   void Load(std::istream & is, std::string stream_name="input") {
@@ -123,7 +164,7 @@ public:
 
     // Loop through the file and process each line.
     while (file_scan) {
-      std::string line = file_scan.Read();
+      std::string line = ApplyVars( file_scan.Read() );
       if (emp::is_whitespace(line)) continue;  // Skip empty lines.
 
       // We are expecting a command, but don't get one, report an error.
