@@ -15,15 +15,14 @@
 
 #include "CheckInfo.hpp"
 
+using string_block_t = emp::vector<std::string>;
+
 class Testcase {
+  friend class Emperfect;
 private:
+  // -- Configured from args --
   std::string name;          // Unique name for this test case.
   double points = 0.0;       // Number of points this test case is worth.
-
-  std::string code;          // The actual code associated with this test case.
-  std::string filename;      // What file is this test case in?
-  size_t start_line = 0;     // At which line number is this test case start?
-  size_t end_line = 0;       // At which line does this test case end?
 
   std::string in_filename;   // Name of file to feed as standard input.
   std::string out_filename;  // Name of file to compare against standard output.
@@ -35,6 +34,12 @@ private:
   bool match_case = true;    // Does case need to match perfectly in the output?
   bool match_space = true;   // Does whitespace need to match perfectly in the output?
 
+  // -- Configured elsewhere --
+  string_block_t code;       // The actual code associated with this test case.
+  std::string filename;      // What file is this test case in?
+  size_t start_line = 0;     // At which line number is this test case start?
+  size_t end_line = 0;       // At which line does this test case end?
+
   std::vector<CheckInfo> checks;
 
   // Helper functions
@@ -45,14 +50,6 @@ private:
   }
 
 public:
-  Testcase(const std::string & _name, double _points, bool _hidden=false)
-    : name(_name), points(_points), hidden(_hidden) { }
-  Testcase(const Testcase &) = default;
-  Testcase(Testcase &&) = default;
-
-  Testcase & operator=(const Testcase &) = default;
-  Testcase & operator=(Testcase &&) = default;
-
   size_t GetNumChecks() const { return checks.size(); }
   size_t CountPassed() const {
     return CountIf([](const auto & check){ return check.passed; });
@@ -66,7 +63,7 @@ public:
   // Test if a check at particular line number passed.
   bool Passed(size_t test_line) const {
     for (const auto & check : checks) {
-      if (check.line_num == test_line) return check.passed;
+      if (check.file_pos.GetLine() == test_line) return check.passed;
     }
     return true;  // No check on line == passed.
   }
