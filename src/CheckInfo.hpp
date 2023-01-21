@@ -14,6 +14,7 @@
 #include <string>
 
 #include "emp/base/notify.hpp"
+#include "emp/io/FilePosition.hpp"
 
 // Parsed information about a given check.
 class CheckString {
@@ -24,15 +25,15 @@ private:
   std::string rhs;
 
 public:
-  ParsedCheck(std::string _test) : test(_test) {
-    emp::notify::TestError(find_any_of(test, 0, "&&", "||") != std::string::npos,
-      to_string("Unit test checks do not allow \"&&\" or \"||\"."), filename, line_num);
+  CheckString(std::string _test, emp::FilePosition file_pos) : test(_test) {
+    emp::notify::TestError(emp::find_any_of(test, 0, "&&", "||") != std::string::npos,
+      emp::to_string("Unit test checks do not allow \"&&\" or \"||\"."), file_pos);
 
-    auto comp_pos = find_any_of(test, 0, "==", "!=", "<", "<=", ">", ">=");
+    auto comp_pos = emp::find_any_of(test, 0, "==", "!=", "<", "<=", ">", ">=");
 
     emp::notify::TestError(comp_pos != std::string::npos &&
-        find_any_of(test, comp_pos+2, "==", "!=", "<", "<=", ">", ">=") != std::string::npos,
-        "Unit test checks can have only one comparison.", filename, line_num);
+        emp::find_any_of(test, comp_pos+2, "==", "!=", "<", "<=", ">", ">=") != std::string::npos,
+        "Unit test checks can have only one comparison.", file_pos);
 
     // Determine which comparison operator we are working with (if any) and the terms being compared.
     if (comp_pos != std::string::npos) {
@@ -59,20 +60,19 @@ public:
   std::string GetLHS() const { return lhs; }
   std::string GetRHS() const { return rhs; }
   std::string GetComparator() const { return comparator; }
-}
+};
 
 struct CheckInfo {
   CheckString test;            // The test string associated with this check.
-  std::string filename = "";   // What file is this check found in?
-  size_t line_num = 0;         // What line number is this check on?
+  emp::FilePosition file_pos;  // Position in the file where this check is located.
   std::string lhs_value = "";  // Representation of the value on the left (e.g., "20")
   std::string rhs_value = "";  // Representation of the value on the right (e.g., "21", if x=16)
   bool passed = false;         // Was this check successful?
   bool resolved = false;       // Are we done performing this check?
   std::string message = "";    // Extra message on failure (e.g., "Grade assessments do not align.")
 
-  CheckInfo(const std::string & _test, const std::string & _filename, size_t _line_num)
-    : test(_test), filename(_filename), line_num(_line_num) {}
+  CheckInfo(const std::string & _test, emp::FilePosition _file_pos)
+    : test(_test, _file_pos), file_pos(_file_pos) {}
   CheckInfo(const CheckInfo &) = default;
 
   void PrintResults_HTML(std::ostream & out) const {
