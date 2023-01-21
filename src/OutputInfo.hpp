@@ -32,13 +32,13 @@ struct OutputInfo {
 
   void SetDetail(const std::string & level) {
     if (level == "none") detail = NONE;
-    else if (level = "percent") detail = PERCENT;
-    else if (level = "score") detail = SCORE;
-    else if (level = "summary") detail = SUMMARY;
-    else if (level = "student") detail = STUDENT;
-    else if (level = "teacher") detail = TEACHER;
-    else if (level = "full") detail = FULL;
-    else if (level = "debug") detail = DEBUG;
+    else if (level == "percent") detail = PERCENT;
+    else if (level == "score") detail = SCORE;
+    else if (level == "summary") detail = SUMMARY;
+    else if (level == "student") detail = STUDENT;
+    else if (level == "teacher") detail = TEACHER;
+    else if (level == "full") detail = FULL;
+    else if (level == "debug") detail = DEBUG;
     else emp::notify::Error("Tying to set unknown detail level '", level, "'.");
   }
 
