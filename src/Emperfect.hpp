@@ -55,6 +55,10 @@ private:
 
   // Load new variables into var_map.
   auto LoadVars(const std::string & args) {
+    // Return an empty map if all we have is whitespace.
+    if (emp::is_whitespace(args)) return std::map<std::string, std::string>();
+
+    // Otherwise assume comma-separated assignments.
     auto setting_map = emp::slice_assign(args);
     for (auto [var, value] : setting_map) {
       var_map[var] = value;
@@ -68,7 +72,7 @@ private:
   std::string ApplyVars(const std::string & line) {
     size_t next_pos = 0, var_start = 0;
     std::string out_string;
-    while (var_start = line.find("${", next_pos) != std::string::npos) {
+    while ((var_start = line.find("${", next_pos)) != std::string::npos) {
       // Copy the string to the start of the variable.
       out_string += line.substr(next_pos, var_start-next_pos);
 
@@ -106,7 +110,7 @@ private:
   // Add a new method of collecting output.
   void AddOutput(const std::string & args) {
     auto setting_map = LoadVars(args);
-    outputs.push_back();
+    outputs.push_back( OutputInfo() );
     auto & output = outputs.back();
 
     for (auto [arg, value] : setting_map) {
@@ -128,7 +132,7 @@ private:
     emp::notify::TestError(compile.size() == 0,
       "Trying to setup testcase, but no compile rules are in place.");
     auto setting_map = LoadVars(args);
-    tests.push_back();
+    tests.push_back(Testcase());
     auto & test = tests.back();
     for (auto [arg, value] : setting_map) {
       if (value.size() && value[0] == '\"') value = emp::from_literal_string(value);
@@ -147,6 +151,7 @@ private:
         emp::notify::Error("Uknown :Testcase argument '", arg, "'.");
       }
     }
+    test.code = LoadCode();
   }
 
 public:
@@ -160,6 +165,7 @@ public:
   // Load test configurations from a stream.
   void Load(std::istream & is, std::string stream_name="input") {
     input_file.Load(is);
+    input_file.RemoveComments("//");
     // NOTE: Do not change whitespace as it might matter for output code.
 
     // Loop through the file and process each line.
@@ -168,7 +174,7 @@ public:
       if (emp::is_whitespace(line)) continue;  // Skip empty lines.
 
       // We are expecting a command, but don't get one, report an error.
-      emp::notify::TestError(line[0] == ':',
+      emp::notify::TestError(line[0] != ':',
         "Line ", file_scan.GetLine()-1, " in ", stream_name, " unknown\n", line, "\n");
 
       const std::string command = emp::to_lower( emp::string_pop_word(line) );
@@ -180,6 +186,11 @@ public:
         emp::notify::Error("Unknown Emperfect command '", command, "'.");
       }
     }
+  }
+
+  void Load(std::string filename) {
+    std::ifstream file(filename);
+    Load (file, filename);
   }
 };
 
