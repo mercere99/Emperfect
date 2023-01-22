@@ -26,6 +26,7 @@ private:
 
   std::string in_filename;   // Name of file to feed as standard input.
   std::string out_filename;  // Name of file to compare against standard output.
+  std::string gen_filename = "_emp_out.txt";  // Name of file to store generated output.
   std::string code_filename; // Name of file with code to test.
   std::string args;          // Command-line arguments.
 
@@ -117,7 +118,8 @@ public:
         << "call_main.........: " << (call_main ? "true" : "false") << "\n"
         << "Command Line Args.: " << args << "\n"
         << "Input to provide..: " << (in_filename.size() ? in_filename : "(none)") << "\n"
-        << "Output to compare.: " << (out_filename.size() ? out_filename : "(none)") << "\n"
+        << "Expected output...: " << (out_filename.size() ? out_filename : "(none)") << "\n"
+        << "Generated output..: " << (gen_filename.size() ? gen_filename : "(none)") << "\n"
         << std::endl;
 
     // std::string code_filename; // Name of file with code to test.
