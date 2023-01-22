@@ -192,6 +192,40 @@ public:
     std::ifstream file(filename);
     Load (file, filename);
   }
+
+  void PrintDebug(std::ostream & out=std::cout) {
+    out << "Vars: " << var_map.size() << "\n"
+        << "Outputs: " << outputs.size() << "\n"
+        << "Compile Lines: " << compile.size() << "\n"
+        << "Header Lines: " << header.size() << "\n"
+        << "Tests: " << tests.size() << "\n";
+
+    out << "\n-- Vars --\n";
+    for (auto [name, val] : var_map) {
+      out << "  ${" << name << "} = " << val << "\n";
+    }
+
+    out << "\n-- Outputs --\n";
+    for (auto x : outputs) {
+      x.PrintDebug(out);
+    }
+
+    out << "\n-- Compile Lines --\n";
+    for (auto x : compile) {
+      std::cout << x << std::endl;
+    }
+
+    out << "\n-- Header Lines --\n";
+    for (auto x : header) {
+      std::cout << x << std::endl;
+    }
+
+    out << "\n-- Tests --\n";
+    for (auto x : tests) {
+      x.PrintDebug(out);
+    }
+
+  }
 };
 
 #endif
