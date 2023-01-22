@@ -23,24 +23,44 @@ struct OutputInfo {
     STUDENT,   // Details about failed visible cases; pass/fail status for hidden
     TEACHER,   // Detailed information about all failed test cases.
     FULL,      // Detailed information about all cases, including those passed.
-    DEBUG      // Extra details (including parsing) for all cases.
+    DEBUG,     // Extra details (including parsing) for all cases.
+    ERROR      // Error; detail level unknown.
   };
 
   std::string filename;  // If filename is empty, use std::cout
-  Detail detail = STUDENT;
+  Detail detail = Detail::STUDENT;
   std::string type;
 
-  void SetDetail(const std::string & level) {
-    if (level == "none") detail = NONE;
-    else if (level == "percent") detail = PERCENT;
-    else if (level == "score") detail = SCORE;
-    else if (level == "summary") detail = SUMMARY;
-    else if (level == "student") detail = STUDENT;
-    else if (level == "teacher") detail = TEACHER;
-    else if (level == "full") detail = FULL;
-    else if (level == "debug") detail = DEBUG;
-    else emp::notify::Error("Tying to set unknown detail level '", level, "'.");
+  Detail NameToDetail(std::string level) {
+    level = emp::to_lower(level);
+    if (level == "none") return Detail::NONE;
+    else if (level == "percent") return Detail::PERCENT;
+    else if (level == "score") return Detail::SCORE;
+    else if (level == "summary") return Detail::SUMMARY;
+    else if (level == "student") return Detail::STUDENT;
+    else if (level == "teacher") return Detail::TEACHER;
+    else if (level == "full") return Detail::FULL;
+    else if (level == "debug") return Detail::DEBUG;
+    emp::notify::Error("Tying to set unknown detail level '", level, "'.");
+    return Detail::ERROR;
   }
+
+  std::string DetailToName(Detail detail) {
+    switch (detail) {
+      case Detail::NONE: return "NONE"; break;
+      case Detail::PERCENT: return "PERCENT"; break;
+      case Detail::SCORE: return "SCORE"; break;
+      case Detail::SUMMARY: return "SUMMARY"; break;
+      case Detail::STUDENT: return "STUDENT"; break;
+      case Detail::TEACHER: return "TEACHER"; break;
+      case Detail::FULL: return "FULL"; break;
+      case Detail::DEBUG: return "DEBUG"; break;
+      default:
+        return "ERROR";
+    }
+  }
+
+  void SetDetail(const std::string & level) { detail = NameToDetail(level); }
 
   // Make sure we have a type set for this output.
   void FinalizeType() {
@@ -54,6 +74,15 @@ struct OutputInfo {
       }
       else type = "txt";
     }
+  }
+
+  void PrintDebug(std::ostream & out=std::cout) {
+    out << "  Target: ";
+    if (filename != "") out << "file '" << filename << "'; ";
+    else out << "standard out; ";
+
+    out << "Detail: " << DetailToName(detail)
+        << "; Encoding: " << type << std::endl;
   }
 };
 
