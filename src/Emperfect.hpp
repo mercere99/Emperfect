@@ -139,12 +139,13 @@ private:
 
       if (arg == "args") test.args = value;
       else if (arg == "code_file") test.code_filename = value;
+      else if (arg == "expected") test.out_filename = value;
       else if (arg == "hidden") test.hidden = ParseBool(value, "hidden");
-      else if (arg == "in_file") test.in_filename = value;
+      else if (arg == "input") test.in_filename = value;
       else if (arg == "match_case") test.match_case = ParseBool(value, "match_case");
       else if (arg == "match_space") test.match_space = ParseBool(value, "match_space");
       else if (arg == "name") test.name = value;
-      else if (arg == "out_file") test.out_filename = value;
+      else if (arg == "output") test.gen_filename = value;
       else if (arg == "points") test.points = emp::from_string<double>(value);
       else if (arg == "run_main") test.call_main = ParseBool(value, "run_main");
       else {
@@ -193,6 +194,24 @@ public:
     Load (file, filename);
   }
 
+  /// @brief  Run a specific test case.
+  /// @param test_id ID of the test case to run.
+  void RunTest(size_t test_id) {
+    emp_assert(test_id < tests.size(), test_id, tests.size());
+
+    // Running a test case has a series of phases.
+    // * Generate the CPP file to be tested (including provided header and instrumentation)
+    // * Compile the generated CPP file, reporting back any errors.
+    // * Run the executable from the generated file, reporting back any errors.
+    // * Compare any outputs produced, reporting back any differences in those outputs. (ignore debug symbols??)
+    // * Record any necessary point calculations and feedback that will be needed later.
+  }
+
+  /// @brief Run all of the available test cases.
+  void RunTests() {
+    for (size_t i = 0; i < tests.size(); ++i) RunTest(i);
+  }
+
   void PrintDebug(std::ostream & out=std::cout) {
     out << "Vars: " << var_map.size() << "\n"
         << "Outputs: " << outputs.size() << "\n"
@@ -224,7 +243,6 @@ public:
     for (auto x : tests) {
       x.PrintDebug(out);
     }
-
   }
 };
 
