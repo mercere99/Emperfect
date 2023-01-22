@@ -1,18 +1,32 @@
+// Some important, built-in variables (see README.md for full list).
+//  ${#test} : The number of the test currently being run.
+//  ${CPP} : The name of the code file for the current test [can be overridden]
+//  ${EXE} : The name of the executable created for the current test [can be overridden]
+//  ${OUT} : The name of the file to write any generated standard output.
+
+// Setup how compilation should be performed
+// (Any new :Compile commands below would replace this one for subsequent tests.)
 :Compile exe="232_unit_test"
   g++ -std=c++20 -Wall -Wextra ${CPP} -o ${EXE}
 
-:Header    // Code to include at the beginning of all tests.
+// Provide a header that should be included at the beginning of all tests.
+// Note: Settings provided here will be available thereafter.
+//       After this example :Header, ${test_var} can be used in any test as 2.0.
+// (Any new :Header commands below would replace this one for subsequent tests.)
+:Header test_var=2.0
   #include <iostream>
   #include "testing.hpp"
 
-  double SquareRoot(double x) { return x / 2.0; }
+  double SquareRoot(double x) { return x / ${test_var}; }
 
-:Output detail="student"
-:Output filename="results.html", detail="student"
-:Output filename="private/teacher-only.html", detail="teacher"
-:Output filename="grade.txt", detail="percent"
+// Set up the output that should be generated.
+// (Multiple :Output commands are cumulative, but only track subsequent tests.)
+:Output detail="student"                                       // No filename -> Standard out
+:Output filename="results.html", detail="student"              // Limited HTML results for students
+:Output filename="private/teacher-only.html", detail="teacher" // Full HTML results for instructors
+:Output filename="grade.txt", detail="percent"                 // Record total grade as % of points
 
-// See README.md for formatting information and options
+// All tests to be run.  See README.md for formatting information and options
 :TestCase run_main=false, name="Simple Tests", points=10.0  // A 10-point test case.  All code is used until next : line.
   size_t x = 5;
   size_t y = 8;
