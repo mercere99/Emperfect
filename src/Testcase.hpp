@@ -105,7 +105,27 @@ public:
 
       PrintCode_HTML(out);
     }
+  }
 
+  void PrintDebug(std::ostream & out=std::cout) {
+    out << "===============\n"
+        << "Name..............: " << name << "\n"
+        << "Points............: " << points << "\n"
+        << "Hidden............: " << (hidden ? "true" : "false") << "\n"
+        << "match_case........: " << (match_case ? "true" : "false") << "\n"
+        << "match_space.......: " << (match_space ? "true" : "false") << "\n"
+        << "call_main.........: " << (call_main ? "true" : "false") << "\n"
+        << "Command Line Args.: " << args << "\n"
+        << "Input to provide..: " << (in_filename.size() ? in_filename : "(none)") << "\n"
+        << "Output to compare.: " << (out_filename.size() ? out_filename : "(none)") << "\n"
+        << std::endl;
+
+    // std::string code_filename; // Name of file with code to test.
+    // string_block_t code;       // The actual code associated with this test case.
+    // std::string filename;      // What file is this test case in?
+    // size_t start_line = 0;     // At which line number is this test case start?
+    // size_t end_line = 0;       // At which line does this test case end?
+    // std::vector<CheckInfo> checks;
   }
 };
 
