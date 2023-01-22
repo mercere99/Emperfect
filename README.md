@@ -16,7 +16,7 @@ Commands available to configure testing are:
 
 | Command     | Description |
 | ----------- | ----------- |
-| `:Compile`  | Subsequent lines specify compile rules.  Use ${CPP} to specify generated c++ test file. |
+| `:Compile`  | Subsequent lines specify compile rules.  Use `${CPP}` for c++ file generated for test and `${EXE}` for executable that will be tested. |
 | `:Header`   | Header information follows (e.g., #includes) to prepend to the beginning of generated c++ files. |
 | `:Output`   | Output configuration. If `filename` is supplied, use as filename otherwise send to standard out;  `detail` specifies granularity of output.  Example: `:Output filename="student.html", detail="student"` |
 | `:Testcase` | Code for the testcase follows (unless overridden); many setting are available to customize how the test case should be run (see below). |
@@ -25,7 +25,7 @@ Note that all commands are case insensitive.  More information about the setting
 
 ### The `:Compile` Command
 
-The compile command specifies how each of the test cases below should be compiled.  Each step of the compilation process is monitored and if any fail they are stored as error cases.  Once compilation has been completed successfully, the executable is run and output from that is reported back to the user (at the specified level of detail).
+The compile command specifies how each of the test cases below should be compiled.  Each step of the compilation process is monitored and if any fail they are stored as error cases.  Once compilation has been completed successfully, the executable is run and output is reported back to the user (at the specified level of detail).
 
 The settings on `:Compile` rarely need to be overridden.  They are:
 
@@ -75,10 +75,11 @@ Each TestCase starts with a `:Testcase` at the beginning of a line, followed by 
 | ------------- | -------------------------------------------------------- | ------------------------- |
 | `name`        | Name to use when reporting on test case.                 | `name="1: Test Square() function"` |
 | `args`        | Command line arguments to provide. (default=none)        | `args="1 2 3"`            | 
-| `run_main`    | Should student's main() function be run? (default=true)  | `run_main=true`             |
+| `run_main`    | Should student's main() function be run? (default=true)  | `run_main=true`           |
 | `points`      | Number of points a test case is worth. (default=10.0)    | `points=30.0`             |
-| `in_file`     | Name of the file to use as standard input (default=none) | `in_file="input01.txt"`   |
-| `out_file`    | Expected output. If provided, must match (default=none)  | `out_file="output01.txt"` |
+| `input`       | Name of file to use as standard input (default=none)     | `input="input01.txt"`     |
+| `output`      | Name of file to record generated output (default='_emp_out.txt') | `input="_emp_out.txt"`     |
+| `expected`    | Expected output. If provided, must match (default=none)  | `expected="output01.txt"` |
 | `code_file`   | If provided, use file instead of local code that follows | `code_file="test01.cpp`   |
 | `hidden`      | Should this test case be hidden? (default=false)         | `hidden=true`             |
 | `match_case`  | Must output matches have same case? (default=true)       | `match_case=false`        |
