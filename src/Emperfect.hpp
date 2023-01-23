@@ -37,12 +37,6 @@ private:
 
   // --- Helper functions ---
 
-  // Determine if a line has a command on it.
-  bool IsCommand(const std::string & str) const {
-    if (str.size() == 0) return false;
-    return str[0] == ':';
-  }
-
   // Load in a value for a setting that translates to a bool.
   bool ParseBool(const std::string & input,
                  const std::string & setting_name)
@@ -53,7 +47,7 @@ private:
     return false; // Doesn't actually return since previous line triggers error.
   }
 
-  // Load new variables into var_map.
+  // Load new variables into var_map and return just the new variables.
   auto LoadVars(const std::string & args) {
     // Return an empty map if all we have is whitespace.
     if (emp::is_whitespace(args)) return std::map<std::string, std::string>();
@@ -91,20 +85,9 @@ private:
   }
 
   // Load a block of code from the file, using file_scan
-  emp::vector<std::string> LoadCode() {
-    return file_scan.ReadUntil( [this](std::string in){ return IsCommand(in); } );
-  }
-
-  // Setup a new compilation method.
-  void SetCompile(const std::string & args) {
-    auto setting_map = LoadVars(args);
-    compile = LoadCode();
-  }
-
-  // Setup new header code.
-  void SetHeader(const std::string & args) {
-    auto setting_map = LoadVars(args);
-    header = LoadCode();
+  void LoadCode(emp::vector<std::string> & code, const std::string & args="") {
+    if (args != "") LoadVars(args);
+    code = file_scan.ReadUntil( [](std::string in){ return emp::has_char_at(in, ':', 0); } );
   }
 
   // Add a new method of collecting output.
@@ -124,35 +107,66 @@ private:
       }
     }
 
-    output.FinalizeType();  // If type has not been set, set it.
+    output.FinalizeType();  // If type has not been set, use filename to set it.
   }
 
-  // Add a new testcase.
-  void AddTestcase(const std::string & args) {
-    emp::notify::TestError(compile.size() == 0,
-      "Trying to setup testcase, but no compile rules are in place.");
-    auto setting_map = LoadVars(args);
+  // Add a new, basic testcase without argument information.
+  Testcase & AddTestcase() {
+    size_t id = tests.size();
     tests.push_back(Testcase());
     auto & test = tests.back();
+    test.id = id;
+    return test;
+  }
+
+  // Use a set of arguments to configure a testcase.
+  void ConfigTestcase(Testcase & test, const std::string & args) {
+    // Initialize any special values that may not be set.
+    test.output_filename = emp::to_string("_emp_out_", test.id, ".txt");
+
+    auto setting_map = LoadVars(args);
     for (auto [arg, value] : setting_map) {
       if (value.size() && value[0] == '\"') value = emp::from_literal_string(value);
 
       if (arg == "args") test.args = value;
       else if (arg == "code_file") test.code_filename = value;
-      else if (arg == "expected") test.out_filename = value;
+      else if (arg == "expected") test.expect_filename = value;
       else if (arg == "hidden") test.hidden = ParseBool(value, "hidden");
-      else if (arg == "input") test.in_filename = value;
+      else if (arg == "input") test.input_filename = value;
       else if (arg == "match_case") test.match_case = ParseBool(value, "match_case");
       else if (arg == "match_space") test.match_space = ParseBool(value, "match_space");
       else if (arg == "name") test.name = value;
-      else if (arg == "output") test.gen_filename = value;
+      else if (arg == "output") test.output_filename = value;
       else if (arg == "points") test.points = emp::from_string<double>(value);
       else if (arg == "run_main") test.call_main = ParseBool(value, "run_main");
       else {
-        emp::notify::Error("Uknown :Testcase argument '", arg, "'.");
+        emp::notify::Error("Unknown :Testcase argument '", arg, "'.");
       }
     }
-    test.code = LoadCode();
+  }
+
+  /// @brief  Run a specific test case.
+  /// @param test_id ID of the test case to run.
+  void RunTest(Testcase & test) {
+    // Running a test case has a series of phases.
+    // 1. Generate the CPP file to be tested (including provided header and instrumentation)
+    // 2. Compile the generated CPP file, reporting back any errors.
+    // 3. Run the executable from the generated file, reporting back any errors.
+    // 4. Compare any outputs produced, reporting back any differences in those outputs.
+    // 5. Record any necessary point calculations and feedback that will be needed later.
+
+    // @CAO: Should we allow a special symbol in the output to provide debug information without
+    // affecting correctness?
+  }
+
+  // Add a new Testcase and run it.
+  void AddTestcase(const std::string & args) {
+    emp::notify::TestError(compile.size() == 0, "Cannot set up testcase without compile rules.");
+
+    auto & test = AddTestcase();
+    ConfigTestcase(test, args);
+    LoadCode(test.code);
+    RunTest(test);
   }
 
 public:
@@ -179,8 +193,8 @@ public:
         "Line ", file_scan.GetLine()-1, " in ", stream_name, " unknown\n", line, "\n");
 
       const std::string command = emp::to_lower( emp::string_pop_word(line) );
-      if (command == ":compile") SetCompile(line);
-      else if (command == ":header") SetHeader(line);
+      if (command == ":compile") LoadCode(compile, line);
+      else if (command == ":header") LoadCode(header, line);
       else if (command == ":output") AddOutput(line);
       else if (command == ":testcase") AddTestcase(line);
       else {
@@ -194,23 +208,6 @@ public:
     Load (file, filename);
   }
 
-  /// @brief  Run a specific test case.
-  /// @param test_id ID of the test case to run.
-  void RunTest(size_t test_id) {
-    emp_assert(test_id < tests.size(), test_id, tests.size());
-
-    // Running a test case has a series of phases.
-    // * Generate the CPP file to be tested (including provided header and instrumentation)
-    // * Compile the generated CPP file, reporting back any errors.
-    // * Run the executable from the generated file, reporting back any errors.
-    // * Compare any outputs produced, reporting back any differences in those outputs. (ignore debug symbols??)
-    // * Record any necessary point calculations and feedback that will be needed later.
-  }
-
-  /// @brief Run all of the available test cases.
-  void RunTests() {
-    for (size_t i = 0; i < tests.size(); ++i) RunTest(i);
-  }
 
   void PrintDebug(std::ostream & out=std::cout) {
     out << "Vars: " << var_map.size() << "\n"
