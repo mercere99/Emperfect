@@ -11,6 +11,8 @@
 #ifndef EMPERFECT_EMPERFECT_HPP
 #define EMPERFECT_EMPERFECT_HPP
 
+#include <cstdlib>
+#include <filesystem>
 #include <iostream>
 
 #include "emp/base/notify.hpp"
@@ -25,6 +27,7 @@ class Emperfect {
 private:
   emp::File input_file;       // File with all input data.
   emp::File::Scan file_scan;  // Position in file.
+  bool is_init = false;       // Has the run been initialized yet?
 
   emp::vector<Testcase> tests;
   emp::vector<OutputInfo> outputs;
@@ -73,7 +76,7 @@ private:
       // Replace the variable we found.
       size_t var_end = line.find("}", var_start);
       emp::notify::TestError(var_end == std::string::npos, "No end to variable on line: ", line);
-      std::string var_name = line.substr(var_start+2, var_end-var_start-2);
+      std::string var_name = emp::to_lower( line.substr(var_start+2, var_end-var_start-2) );
       emp::notify::TestError(!emp::Has(var_map, var_name), "Unknown variable used: ", var_name);
       out_string += var_map[var_name];
 
@@ -84,14 +87,39 @@ private:
     return out_string;
   }
 
+  void Init(const std::string & args="") {
+    emp::notify::TestError(is_init, "Error: :Init run twice!");
+    is_init = true;
+    LoadVars(args);
+
+    // Make sure ${DIR} exists.
+    std::string dir_name = var_map["dir"];
+    if (!std::filesystem::exists(dir_name)) {
+      std::cout << "CREATING: " << dir_name << std::endl;
+      std::filesystem::create_directories(dir_name);
+    }
+  }
+
   // Load a block of code from the file, using file_scan
-  void LoadCode(emp::vector<std::string> & code, const std::string & args="") {
+  void LoadCode(emp::vector<std::string> & code, const std::string & args="", bool remove_blank=true) {
+    if (!is_init) Init();
+
     if (args != "") LoadVars(args);
     code = file_scan.ReadUntil( [](std::string in){ return emp::has_char_at(in, ':', 0); } );
+    if (remove_blank) {
+      for (size_t i=0; i < code.size();) {
+        if (emp::is_whitespace(code[i])) {
+          code.erase(code.begin()+i);
+        }
+        else ++i;
+      }
+    }
   }
 
   // Add a new method of collecting output.
   void AddOutput(const std::string & args) {
+    if (!is_init) Init();
+
     auto setting_map = LoadVars(args);
     outputs.push_back( OutputInfo() );
     auto & output = outputs.back();
@@ -110,23 +138,24 @@ private:
     output.FinalizeType();  // If type has not been set, use filename to set it.
   }
 
-  // Add a new, basic testcase without argument information.
-  Testcase & AddTestcase() {
-    size_t id = tests.size();
-    tests.push_back(Testcase());
-    auto & test = tests.back();
-    test.id = id;
-    return test;
-  }
-
   // Use a set of arguments to configure a testcase.
   void ConfigTestcase(Testcase & test, const std::string & args) {
     // Initialize any special values that may not be set.
-    test.cpp_filename = emp::to_string("_emp_out_", test.id, ".cpp");
-    test.exe_filename = emp::to_string("_emp_out_", test.id, ".exe");
-    test.output_filename = emp::to_string("_emp_out_", test.id, ".txt");
+    std::string file_base = emp::to_string(var_map["dir"], "/Test", test.id);
+    var_map["cpp"] =     file_base + ".cpp";
+    var_map["exe"] =     file_base + ".exe";
+    var_map["compile"] = file_base + "-compile.txt";
+    var_map["out"] =     file_base + "-output.txt";
+    var_map["error"] =   file_base + "-errors.txt";
 
+    // Allow these to be overwritten by settings, and then lock them into the testcase.
     auto setting_map = LoadVars(args);
+    test.cpp_filename =     var_map["cpp"];
+    test.exe_filename =     var_map["exe"];
+    test.compile_filename = var_map["compile"];
+    test.output_filename =  var_map["out"];
+    test.error_filename =   var_map["error"];
+
     for (auto [arg, value] : setting_map) {
       if (value.size() && value[0] == '\"') value = emp::from_literal_string(value);
 
@@ -152,32 +181,55 @@ private:
     test.processed_code = ApplyVars( emp::join(test.code, "\n") );
 
     // Add user-provided headers.
-    std::stringstream ss;
-    for (const auto & x : header) ss << ApplyVars(x) << "\n";
+    std::stringstream processed_header;
+    for (const auto & line : header) processed_header << ApplyVars(line) << "\n";
 
-    test.GenerateTestCPP(ss.str());
+    test.GenerateCPP(processed_header.str(), var_map["dir"]);
+  }
+
+  void CompileTestCPP(Testcase & test) {
+    // Add user-provided headers.
+    for (std::string line : compile) {
+      line = ApplyVars(line);
+      std::cout << line << std::endl;
+      test.compile_exit_code = std::system(line.c_str());
+      std::cout << "Exit Code: " << test.compile_exit_code << std::endl;
+    }
+
   }
 
   /// Run a specific test case.
   void RunTest(Testcase & test) {
+    var_map["#test"] = emp::to_string(test.id);
+    var_map["cpp"] = test.cpp_filename;
+    var_map["exe"] = test.exe_filename;
+    var_map["out"] = test.output_filename;
+    var_map["compile"] = test.compile_filename;
+    var_map["error"] = test.error_filename;
+
     // Running a test case has a series of phases.
-    // 1. Generate the CPP file to be tested (including provided header and instrumentation)
-    // 2. Compile the generated CPP file, reporting back any errors.
-    // 3. Run the executable from the generated file, reporting back any errors.
-    // 4. Compare any outputs produced, reporting back any differences in those outputs.
-    // 5. Record any necessary point calculations and feedback that will be needed later.
+    // Phase 1: Generate the CPP file to be tested (including provided header and instrumentation)
+    GenerateTestCPP(test);
+
+    // Phase 2: Compile the generated CPP file, reporting back any errors.
+    CompileTestCPP(test);
+
+    // Phase 3: Run the executable from the generated file, reporting back any errors.
+    // Phase 4: Compare any outputs produced, reporting back any differences in those outputs.
+    // Phase 5: Record any necessary point calculations and feedback that will be needed later.
 
     // @CAO: Should we allow a special symbol in the output to provide debug information without
     // affecting correctness?
 
-    GenerateTestCPP(test);
   }
 
   // Add a new Testcase and run it.
   void AddTestcase(const std::string & args) {
     emp::notify::TestError(compile.size() == 0, "Cannot set up testcase without compile rules.");
 
-    auto & test = AddTestcase();
+    tests.emplace_back(tests.size());
+
+    auto & test = tests.back();
     ConfigTestcase(test, args);
     LoadCode(test.code);
     RunTest(test);
@@ -186,9 +238,9 @@ private:
 public:
   Emperfect() : file_scan(input_file) {
     // Initialize default values
-    var_map["cpp"] = "emperfect_test_file_.cpp";
-    var_map["exe"] = "emperfect_test_exe_";
+    var_map["dir"] = ".emperfect";
     var_map["debug"] = "false";
+    var_map["log"] = "Log.txt";
   }
 
   // Load test configurations from a stream.
@@ -196,6 +248,12 @@ public:
     input_file.Load(is);
     input_file.RemoveComments("//");
     // NOTE: Do not change whitespace as it might matter for output code.
+    
+    // Setup the output file for all of the tests.
+    std::string log_filename = emp::to_string(var_map["DIR"], "/", var_map["LOG"]);
+    std::ofstream test_log(log_filename);
+    test_log << "== EMPERFECT TEST LOG ==\n" << std::endl;
+    test_log.close();  // Individual tests will re-open and append to the log.
 
     // Loop through the file and process each line.
     while (file_scan) {
@@ -207,7 +265,8 @@ public:
         "Line ", file_scan.GetLine()-1, " in ", stream_name, " unknown\n", line, "\n");
 
       const std::string command = emp::to_lower( emp::string_pop_word(line) );
-      if (command == ":compile") LoadCode(compile, line);
+      if (command == ":init") Init(line);
+      else if (command == ":compile") LoadCode(compile, line);
       else if (command == ":header") LoadCode(header, line);
       else if (command == ":output") AddOutput(line);
       else if (command == ":testcase") AddTestcase(line);
