@@ -26,7 +26,8 @@ private:
   std::string rhs = "";
 
 public:
-  void SetFrom(const std::string & test, std::string location) {
+  void SetFrom(const std::string & _test, std::string location) {
+    test = _test;
     emp::notify::TestError(emp::find_any_of(test, 0, "&&", "||") != std::string::npos,
       location, ": Unit test checks do not allow \"&&\" or \"||\".");
 
@@ -43,6 +44,9 @@ public:
       comparator = test.substr(comp_pos, comp_size);
       lhs = test.substr(0, comp_pos);
       rhs = test.substr(comp_pos+comp_size);
+    }
+    else {
+      lhs = test; // Whole test is on the left-hand-side.
     }
   }
 
@@ -83,12 +87,17 @@ struct CheckInfo {
     // Generate code for this test.
     out << "  /* CHECK #" << id << " */\n"
         << "  {\n"
-        << "    auto lhs = " << test.GetLHS() << ";\n"
-        << "    auto rhs = " << test.GetRHS() << ";\n"
-        << "    bool success = (lhs " << test.GetComparator() << " rhs);\n"
-        << "    _emperfect_passed &= success;\n"
+        << "    auto _emperfect_lhs = " << test.GetLHS() << ";\n";
+    if (test.HasComp()) {
+      out << "    auto _emperfect_rhs = " << test.GetRHS() << ";\n"
+          << "    bool _emperfect_success = (_emperfect_lhs " << test.GetComparator() << " _emperfect_rhs);\n";
+    } else {
+      out << "    auto _emperfect_rhs = \"N/A\";\n"
+          << "    bool _emperfect_success = _emperfect_lhs;\n";
+    }
+    out << "    _emperfect_passed &= _emperfect_success;\n"
         << "    std::string _emperfect_msg = \"Success!\";\n"
-        << "    if (!success) {\n"
+        << "    if (!_emperfect_success) {\n"
         << "      std::stringstream ss;\n";
     for (std::string x : error_msgs) {
       out << "      ss << " << x << ";\n";
@@ -97,9 +106,9 @@ struct CheckInfo {
         << "    }\n"
         << "    _emperfect_out << \":CHECK: " << id << "\\n\"\n"
         << "                   << \":TEST: \" << " << test.ToLiteral() << " << \"\\n\"\n"
-        << "                   << \":RESULT: \" << (success ? \" PASSED\\n\" : \" FAILED\\n\")\n"
-        << "                   << \":LHS: \" << lhs << \"\\n\"\n"
-        << "                   << \":RHS: \" << rhs << \"\\n\"\n"
+        << "                   << \":RESULT: \" << _emperfect_success << \"\\n\"\n"
+        << "                   << \":LHS: \" << _emperfect_lhs << \"\\n\"\n"
+        << "                   << \":RHS: \" << _emperfect_rhs << \"\\n\"\n"
         << "                   << \":MSG: \" << _emperfect_msg << \"\\n\\n\";\n"
         << "    _emperfect_check_id++;\n"
         << "  }\n";
