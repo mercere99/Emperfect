@@ -14,66 +14,98 @@
 #include <string>
 
 #include "emp/base/notify.hpp"
-#include "emp/io/FilePosition.hpp"
+
+using string_block_t = emp::vector<std::string>;
 
 // Parsed information about a given check.
 class CheckString {
 private:
-  std::string test;
-  std::string lhs;
-  std::string comparator;
-  std::string rhs;
+  std::string test = "";
+  std::string lhs = "";
+  std::string comparator = "";
+  std::string rhs = "";
 
 public:
-  CheckString(std::string _test, emp::FilePosition file_pos) : test(_test) {
+  void SetFrom(const std::string & test, std::string location) {
     emp::notify::TestError(emp::find_any_of(test, 0, "&&", "||") != std::string::npos,
-      emp::to_string("Unit test checks do not allow \"&&\" or \"||\"."), file_pos);
+      location, ": Unit test checks do not allow \"&&\" or \"||\".");
 
-    auto comp_pos = emp::find_any_of(test, 0, "==", "!=", "<", "<=", ">", ">=");
+    size_t comp_pos = emp::find_any_of(test, 0, "==", "!=", "<", "<=", ">", ">=");
+    bool has_comp = (comp_pos != std::string::npos);
 
-    emp::notify::TestError(comp_pos != std::string::npos &&
+    if (has_comp) {
+      // Make sure it doesn't have TWO comparisons.
+      emp::notify::TestError(
         emp::find_any_of(test, comp_pos+2, "==", "!=", "<", "<=", ">", ">=") != std::string::npos,
-        "Unit test checks can have only one comparison.", file_pos);
+        location, ": Unit test checks can have only one comparison.");
 
-    // Determine which comparison operator we are working with (if any) and the terms being compared.
-    if (comp_pos != std::string::npos) {
-      comparator += test[comp_pos];
-      if (test.at(comp_pos+1) == '=') comparator += "=";
-
-      // Identify the left and right hand sides
-      lhs = test.substr(0,comp_pos);
-      emp::compress_whitespace(lhs);
-      rhs = test.substr(comp_pos+comparator.size());
-      emp::compress_whitespace(rhs);
-    }
-    else {
-      lhs = test;
+      size_t comp_size = (test[comp_pos+1] == '=') ? 2 : 1;
+      comparator = test.substr(comp_pos, comp_size);
+      lhs = test.substr(0, comp_pos);
+      rhs = test.substr(comp_pos+comp_size);
     }
   }
-  CheckString(const CheckString &) = default;
-  CheckString(CheckString &&) = default;
-
-  CheckString & operator=(const CheckString &) = default;
-  CheckString & operator=(CheckString &&) = default;
 
   const std::string & ToString() const { return test; }
+  std::string ToLiteral() const { return emp::to_literal(test); }
   std::string GetLHS() const { return lhs; }
   std::string GetRHS() const { return rhs; }
   std::string GetComparator() const { return comparator; }
+  bool HasComp() const { return comparator.size(); }
 };
 
 struct CheckInfo {
   CheckString test;            // The test string associated with this check.
-  emp::FilePosition file_pos;  // Position in the file where this check is located.
-  std::string lhs_value = "";  // Representation of the value on the left (e.g., "20")
-  std::string rhs_value = "";  // Representation of the value on the right (e.g., "21", if x=16)
+  std::string location;        // Position in the file where this check is located.
+  size_t id;                   // Unique ID for this check.
+  string_block_t error_msgs;   // Extra arguments from check to use in error messages.
+
+  std::string lhs_value = "";  // Resulting value on left (e.g., "20")
+  std::string rhs_value = "";  // Resulting value on right (e.g., "21", if rhs is "x+5" and x=16)
   bool passed = false;         // Was this check successful?
   bool resolved = false;       // Are we done performing this check?
-  std::string message = "";    // Extra message on failure (e.g., "Grade assessments do not align.")
 
-  CheckInfo(const std::string & _test, emp::FilePosition _file_pos)
-    : test(_test, _file_pos), file_pos(_file_pos) {}
+  CheckInfo(const std::string & check_body, std::string _location, size_t _id)
+    : location(_location), id(_id)
+  {
+    error_msgs = emp::slice(check_body, ',', 256, true, true, true);
+
+    // Split off the test (the first argument) and make sure it's valid.
+    emp::notify::TestError(error_msgs.size() == 0, location, ": CHECK cannot be empty.");
+    test.SetFrom(error_msgs[0], location);
+    error_msgs.erase(error_msgs.begin());
+  }
   CheckInfo(const CheckInfo &) = default;
+
+  std::string ToCPP() const {
+    std::stringstream out;
+
+    // Generate code for this test.
+    out << "  /* CHECK #" << id << " */\n"
+        << "  {\n"
+        << "    auto lhs = " << test.GetLHS() << ";\n"
+        << "    auto rhs = " << test.GetRHS() << ";\n"
+        << "    bool success = (lhs " << test.GetComparator() << " rhs);\n"
+        << "    _emperfect_passed &= success;\n"
+        << "    std::string _emperfect_msg = \"Success!\";\n"
+        << "    if (!success) {\n"
+        << "      std::stringstream ss;\n";
+    for (std::string x : error_msgs) {
+      out << "      ss << " << x << ";\n";
+    }
+    out << "      _emperfect_msg = ss.str();"
+        << "    }\n"
+        << "    _emperfect_out << \":CHECK: " << id << "\\n\"\n"
+        << "                   << \":TEST: \" << " << test.ToLiteral() << " << \"\\n\"\n"
+        << "                   << \":RESULT: \" << (success ? \" PASSED\\n\" : \" FAILED\\n\")\n"
+        << "                   << \":LHS: \" << lhs << \"\\n\"\n"
+        << "                   << \":RHS: \" << rhs << \"\\n\"\n"
+        << "                   << \":MSG: \" << _emperfect_msg << \"\\n\\n\";\n"
+        << "    _emperfect_check_id++;\n"
+        << "  }\n";
+
+    return out.str();
+  }
 
   void PrintResults_HTML(std::ostream & out) const {
     if (passed) return; // No results printed for passed tests.
