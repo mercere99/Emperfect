@@ -51,6 +51,8 @@ private:
 
   // -- Results --
   int compile_exit_code = -1;  // Exit code from compilation (results compiler_filename)
+  int run_exit_code = -1;      // Exit code from running the test.
+  bool output_match = false;   // Did exe output match expected output?
 
   // Helper functions
 
