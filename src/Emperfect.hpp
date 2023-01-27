@@ -195,7 +195,41 @@ private:
       test.compile_exit_code = std::system(line.c_str());
       std::cout << "Exit Code: " << test.compile_exit_code << std::endl;
     }
+  }
 
+  void RunTestExe(Testcase & test) {
+    std::string run_command = emp::to_string("./", test.exe_filename);
+    if (test.args.size()) run_command += emp::to_string(" ", test.args);
+    run_command += emp::to_string(" > ", test.output_filename, " 2> ", test.error_filename);
+    std::cout << run_command << std::endl;
+    test.run_exit_code = std::system(run_command.c_str());
+    std::cout << "Exit Code: " << test.run_exit_code << std::endl;
+  }
+
+  void CompareTestResults(Testcase & test) {
+    if (test.expect_filename.size()) {
+      emp::File expect_output(test.expect_filename);
+      emp::File exe_output(test.output_filename);
+
+      if (test.match_case == false) {
+        expect_output.Apply(emp::to_lower);
+        exe_output.Apply(emp::to_lower);
+      }
+      if (test.match_space == false) {
+        expect_output.RemoveWhitespace();
+        exe_output.RemoveWhitespace();
+      }
+      test.output_match = (expect_output == exe_output);
+      if (test.output_match) {
+        std::cout << "Output match: Passed!" << std::endl;
+      } else {
+        std::cout << "Output match: Failed!." << std::endl;
+      }
+    }
+    else {
+      test.output_match = true; // No output to match...
+      std::cout << "No output to match." << std::endl;
+    }
   }
 
   /// Run a specific test case.
@@ -214,9 +248,15 @@ private:
     // Phase 2: Compile the generated CPP file, reporting back any errors.
     CompileTestCPP(test);
 
-    // Phase 3: Run the executable from the generated file, reporting back any errors.
-    // Phase 4: Compare any outputs produced, reporting back any differences in those outputs.
-    // Phase 5: Record any necessary point calculations and feedback that will be needed later.
+    if (test.compile_exit_code == 0) {
+      // Phase 3: Run the executable from the generated file, reporting back any errors.
+      RunTestExe(test);
+
+      // Phase 4: Compare any outputs produced, reporting back any differences in those outputs.
+      CompareTestResults(test);
+    }
+
+    // Phase 5: Record any necessary point calculations and feedback.
 
     // @CAO: Should we allow a special symbol in the output to provide debug information without
     // affecting correctness?
