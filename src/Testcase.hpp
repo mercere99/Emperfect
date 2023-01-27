@@ -116,7 +116,9 @@ public:
     return out.str();
   }
   
-  void GenerateCPP(const std::string & header, const std::string & dir) {
+  void GenerateCPP(const std::string & header,
+                   const std::string & dir,
+                   const std::string & log_filename) {
     // If we are using a filename, load it in as code.
     if (code_filename.size()) {
       emp::notify::TestError(code.size(),
@@ -138,7 +140,7 @@ public:
       << "\n"
       << header << "\n"
       << "void _emperfect_main() {\n"
-      << "  std::ofstream _emperfect_out(\"" << dir << "/Log.txt\", std::ios_base::app);\n"
+      << "  std::ofstream _emperfect_out(\"" << dir << "/" << log_filename << "\", std::ios_base::app);\n"
       << "  _emperfect_out << \"TESTCASE " << id << "\\n\";\n"
       << "  bool _emperfect_passed = true;\n"
       << "  size_t _emperfect_check_id = 0;\n\n";
