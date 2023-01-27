@@ -68,6 +68,7 @@ struct CheckInfo {
   std::string rhs_value = "";  // Resulting value on right (e.g., "21", if rhs is "x+5" and x=16)
   bool passed = false;         // Was this check successful?
   bool resolved = false;       // Are we done performing this check?
+  std::string msg;             // Message from test runner for students.
 
   CheckInfo(const std::string & check_body, std::string _location, size_t _id)
     : location(_location), id(_id)
@@ -104,12 +105,12 @@ struct CheckInfo {
     }
     out << "      _emperfect_msg = ss.str();"
         << "    }\n"
-        << "    _emperfect_out << \":CHECK: " << id << "\\n\"\n"
-        << "                   << \":TEST: \" << " << test.ToLiteral() << " << \"\\n\"\n"
-        << "                   << \":RESULT: \" << _emperfect_success << \"\\n\"\n"
-        << "                   << \":LHS: \" << _emperfect_lhs << \"\\n\"\n"
-        << "                   << \":RHS: \" << _emperfect_rhs << \"\\n\"\n"
-        << "                   << \":MSG: \" << _emperfect_msg << \"\\n\\n\";\n"
+        << "    _emperfect_results << \":CHECK: " << id << "\\n\"\n"
+        << "                       << \":TEST: \" << " << test.ToLiteral() << " << \"\\n\"\n"
+        << "                       << \":RESULT: \" << _emperfect_success << \"\\n\"\n"
+        << "                       << \":LHS: \" << _emperfect_lhs << \"\\n\"\n"
+        << "                       << \":RHS: \" << _emperfect_rhs << \"\\n\"\n"
+        << "                       << \":MSG: \" << _emperfect_msg << \"\\n\\n\";\n"
         << "    _emperfect_check_id++;\n"
         << "  }\n";
 
