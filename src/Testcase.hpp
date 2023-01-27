@@ -39,6 +39,7 @@ private:
   bool hidden = false;       // Should this test case be seen by students?
   bool match_case = true;    // Does case need to match perfectly in the output?
   bool match_space = true;   // Does whitespace need to match perfectly in the output?
+  size_t timeout = 5;        // How many seconds should this testcase be allowed run?
 
   // -- Configured elsewhere --
   string_block_t code;       // The actual code associated with this test case.
@@ -53,6 +54,7 @@ private:
   int compile_exit_code = -1;  // Exit code from compilation (results compiler_filename)
   int run_exit_code = -1;      // Exit code from running the test.
   bool output_match = false;   // Did exe output match expected output?
+  bool hit_timeout = false;    // Did this testcase need to be halted?
 
   // Helper functions
 

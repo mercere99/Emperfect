@@ -170,6 +170,7 @@ private:
       else if (arg == "output") test.output_filename = value;
       else if (arg == "points") test.points = emp::from_string<double>(value);
       else if (arg == "run_main") test.call_main = ParseBool(value, "run_main");
+      else if (arg == "timeout") test.timeout = emp::from_string<size_t>(value);
       else {
         emp::notify::Error("Unknown :Testcase argument '", arg, "'.");
       }
@@ -193,17 +194,23 @@ private:
       line = ApplyVars(line);
       std::cout << line << std::endl;
       test.compile_exit_code = std::system(line.c_str());
-      std::cout << "Exit Code: " << test.compile_exit_code << std::endl;
+      std::cout << "Compile exit code: " << test.compile_exit_code << std::endl;
     }
   }
 
   void RunTestExe(Testcase & test) {
-    std::string run_command = emp::to_string("./", test.exe_filename);
+    std::string run_command = emp::to_string("timeout ", test.timeout, " ./", test.exe_filename);
     if (test.args.size()) run_command += emp::to_string(" ", test.args);
     run_command += emp::to_string(" > ", test.output_filename, " 2> ", test.error_filename);
     std::cout << run_command << std::endl;
-    test.run_exit_code = std::system(run_command.c_str());
-    std::cout << "Exit Code: " << test.run_exit_code << std::endl;
+    test.run_exit_code = std::system(run_command.c_str()); // % 256;
+    // Timeout exit code may be first byte or second byte.
+    if (test.run_exit_code % 256 == 124 ||
+        test.run_exit_code / 256 == 124) {
+      test.hit_timeout = true;
+      std::cout << "...Halted due to timeout." << std::endl;
+    }
+    std::cout << "Executable exit code: " << test.run_exit_code << std::endl;
   }
 
   void CompareTestResults(Testcase & test) {
