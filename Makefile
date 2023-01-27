@@ -36,7 +36,7 @@ $(TARGET): src/$(TARGET).cpp
 new: clean
 new: native
 
-CXX = /usr/bin/g++
+CXX = g++
 
 # Debugging information
 #print-%: ; @echo $*=$($*)
