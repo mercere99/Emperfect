@@ -6,6 +6,9 @@
  *  @file  Emperfect.hpp
  *  @brief Main driver for Emperfect unit testing
  * 
+ *  TODO:
+ *  - Make log actually work.  (var_map["log"])
+ *  - Refactor most of test-case running into Testcase.hpp
  */
 
 #ifndef EMPERFECT_EMPERFECT_HPP
@@ -142,19 +145,21 @@ private:
   void ConfigTestcase(Testcase & test, const std::string & args) {
     // Initialize any special values that may not be set.
     std::string file_base = emp::to_string(var_map["dir"], "/Test", test.id);
-    var_map["cpp"] =     file_base + ".cpp";
-    var_map["exe"] =     file_base + ".exe";
     var_map["compile"] = file_base + "-compile.txt";
-    var_map["out"] =     file_base + "-output.txt";
+    var_map["cpp"] =     file_base + ".cpp";
     var_map["error"] =   file_base + "-errors.txt";
+    var_map["exe"] =     file_base + ".exe";
+    var_map["out"] =     file_base + "-output.txt";
+    var_map["result"] =  file_base + "-result.txt";
 
     // Allow these to be overwritten by settings, and then lock them into the testcase.
     auto setting_map = LoadVars(args);
+    test.compile_filename = var_map["compile"];
     test.cpp_filename =     var_map["cpp"];
     test.exe_filename =     var_map["exe"];
-    test.compile_filename = var_map["compile"];
-    test.output_filename =  var_map["out"];
     test.error_filename =   var_map["error"];
+    test.output_filename =  var_map["out"];
+    test.result_filename =  var_map["result"];
 
     for (auto [arg, value] : setting_map) {
       if (value.size() && value[0] == '\"') value = emp::from_literal_string(value);
@@ -169,6 +174,7 @@ private:
       else if (arg == "name") test.name = value;
       else if (arg == "output") test.output_filename = value;
       else if (arg == "points") test.points = emp::from_string<double>(value);
+      else if (arg == "result") test.result_filename = value;
       else if (arg == "run_main") test.call_main = ParseBool(value, "run_main");
       else if (arg == "timeout") test.timeout = emp::from_string<size_t>(value);
       else {
@@ -185,7 +191,7 @@ private:
     std::stringstream processed_header;
     for (const auto & line : header) processed_header << ApplyVars(line) << "\n";
 
-    test.GenerateCPP(processed_header.str(), var_map["dir"], var_map["log"]);
+    test.GenerateCPP(processed_header.str());
   }
 
   void CompileTestCPP(Testcase & test) {
@@ -198,9 +204,10 @@ private:
     }
   }
 
-  void RunTestExe(Testcase & test) {
+  bool RunTestExe(Testcase & test) {
     std::string run_command = emp::to_string("timeout ", test.timeout, " ./", test.exe_filename);
     if (test.args.size()) run_command += emp::to_string(" ", test.args);
+    if (test.input_filename.size()) run_command += emp::to_string(" < ", test.input_filename);
     run_command += emp::to_string(" > ", test.output_filename, " 2> ", test.error_filename);
     std::cout << run_command << std::endl;
     test.run_exit_code = std::system(run_command.c_str()); // % 256;
@@ -211,6 +218,7 @@ private:
       std::cout << "...Halted due to timeout." << std::endl;
     }
     std::cout << "Executable exit code: " << test.run_exit_code << std::endl;
+    return (test.run_exit_code == 0);
   }
 
   void CompareTestResults(Testcase & test) {
@@ -248,17 +256,38 @@ private:
   }
 
   void RecordTestResults(Testcase & test) {
+    emp::File result_file(test.result_filename);
+    result_file.RemoveEmpty();
+    size_t check_id = 0;
+    for (std::string line : result_file) {
+      std::string field = emp::string_pop_word(line);
+      if (field == ":CHECK:") check_id = emp::from_string<size_t>(line);
+      else if (field == ":TEST:") {} // We already have this...
+      else if (field == ":RESULT:") {
+        test.checks[check_id].passed = (line == "1");
+        test.checks[check_id].resolved = true;
+      }
+      else if (field == ":LHS:") test.checks[check_id].lhs_value = line;
+      else if (field == ":RHS:") test.checks[check_id].rhs_value = line;
+      else if (field == ":MSG:") test.checks[check_id].msg = line;
+      else if (field == "SCORE") {
+        test.score = emp::from_string<double>(line);
+        std::cout << "Score = " << test.score << " of " << test.points << std::endl;
+      }
+      else emp::notify::Error("Unknown field in result file: ", field);
+    }
   }
 
 
   /// Run a specific test case.
   void RunTest(Testcase & test) {
     var_map["#test"] = emp::to_string(test.id);
+    var_map["compile"] = test.compile_filename;
     var_map["cpp"] = test.cpp_filename;
+    var_map["error"] = test.error_filename;
     var_map["exe"] = test.exe_filename;
     var_map["out"] = test.output_filename;
-    var_map["compile"] = test.compile_filename;
-    var_map["error"] = test.error_filename;
+    var_map["result"] = test.result_filename;
 
     // Running a test case has a series of phases.
     // Phase 1: Generate the CPP file to be tested (including provided header and instrumentation)
