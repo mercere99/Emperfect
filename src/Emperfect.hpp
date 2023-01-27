@@ -161,7 +161,7 @@ private:
 
       if (arg == "args") test.args = value;
       else if (arg == "code_file") test.code_filename = value;
-      else if (arg == "expected") test.expect_filename = value;
+      else if (arg == "expect") test.expect_filename = value;
       else if (arg == "hidden") test.hidden = ParseBool(value, "hidden");
       else if (arg == "input") test.input_filename = value;
       else if (arg == "match_case") test.match_case = ParseBool(value, "match_case");
@@ -184,7 +184,7 @@ private:
     std::stringstream processed_header;
     for (const auto & line : header) processed_header << ApplyVars(line) << "\n";
 
-    test.GenerateCPP(processed_header.str(), var_map["dir"]);
+    test.GenerateCPP(processed_header.str(), var_map["dir"], var_map["log"]);
   }
 
   void CompileTestCPP(Testcase & test) {
@@ -218,12 +218,20 @@ private:
       if (test.match_space == false) {
         expect_output.RemoveWhitespace();
         exe_output.RemoveWhitespace();
+      } else {
+        // We always at least remove completely blank lines before comparisons.
+        expect_output.RemoveEmpty();
+        exe_output.RemoveEmpty();
       }
+
       test.output_match = (expect_output == exe_output);
       if (test.output_match) {
         std::cout << "Output match: Passed!" << std::endl;
       } else {
-        std::cout << "Output match: Failed!." << std::endl;
+        std::cout << "Output match: Failed." << std::endl;
+        expect_output.Write(std::cout);
+        std::cout << "---" << std::endl;
+        exe_output.Write(std::cout);
       }
     }
     else {
@@ -231,6 +239,10 @@ private:
       std::cout << "No output to match." << std::endl;
     }
   }
+
+  void RecordTestResults(Testcase & test) {
+  }
+
 
   /// Run a specific test case.
   void RunTest(Testcase & test) {
@@ -257,6 +269,7 @@ private:
     }
 
     // Phase 5: Record any necessary point calculations and feedback.
+    RecordTestResults(test);
 
     // @CAO: Should we allow a special symbol in the output to provide debug information without
     // affecting correctness?
@@ -290,7 +303,7 @@ public:
     // NOTE: Do not change whitespace as it might matter for output code.
     
     // Setup the output file for all of the tests.
-    std::string log_filename = emp::to_string(var_map["DIR"], "/", var_map["LOG"]);
+    std::string log_filename = emp::to_string(var_map["dir"], "/", var_map["log"]);
     std::ofstream test_log(log_filename);
     test_log << "== EMPERFECT TEST LOG ==\n" << std::endl;
     test_log.close();  // Individual tests will re-open and append to the log.
