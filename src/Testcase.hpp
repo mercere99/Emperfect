@@ -6,6 +6,7 @@
  *  @file  Testcase.hpp
  *  @brief An individual testcase in Emperfect.
  * 
+ *  @todo bold failed test cases in PrintCode_HTML
  */
 
 #ifndef EMPERFECT_TESTCASE_HPP
@@ -42,7 +43,6 @@ private:
   bool match_case = true;    // Does case need to match perfectly in the output?
   bool match_space = true;   // Does whitespace need to match perfectly in the output?
   size_t timeout = 5;        // How many seconds should this testcase be allowed run?
-  double score = 0.0;        // Final score awarded for this testcase.
 
   // -- Configured elsewhere --
   string_block_t code;       // The actual code associated with this test case.
@@ -56,8 +56,9 @@ private:
   // -- Results --
   int compile_exit_code = -1;  // Exit code from compilation (results compiler_filename)
   int run_exit_code = -1;      // Exit code from running the test.
-  bool output_match = false;   // Did exe output match expected output?
+  bool output_match = true;    // Did exe output match expected output?
   bool hit_timeout = false;    // Did this testcase need to be halted?
+  double score = 0.0;          // Final score awarded for this testcase.
 
   // Helper functions
 
@@ -77,7 +78,7 @@ public:
     return CountIf([](const auto & check){ return !check.passed; });
   }
 
-  bool Passed() const { return CountPassed() == checks.size(); }
+  bool Passed() const { return CountPassed() == checks.size() && output_match; }
 
   // Test if a check at particular line number passed.
   bool Passed(size_t test_id) const {
@@ -168,40 +169,32 @@ public:
 
 
   void PrintCode_HTML(std::ostream & out) const {
+    out << "Source:<br><br>\n";
     out << "<table style=\"background-color:#E3E0CF;\"><tr><td><pre>\n\n";
-    std::ifstream source(filename);
-    std::string code;
-    size_t line = 0;
-
-    // Skip beginning of file.
-    while (++line < start_line) std::getline(source, code);
-    while (++line < end_line && std::getline(source, code)) {
-      const bool highlight = !Passed(line-1);
+    for (auto line : code) {
+      const bool highlight = false; // Passed(0);
       if (highlight) out << "<b>";
-      out << code << "\n";
+      out << line << "\n";
       if (highlight) out << "</b>";
     }
     out << "</pre></tr></table>\n";
   }
 
-  void PrintResult_HTML(std::ostream & out, bool is_student=true) const {
+  void PrintResult_HTML(OutputInfo & output) const {
+    if (!output.HasResults()) return;
+    std::ostream & out = output.GetFile();
+
     // Notify if the test passed.
     if (Passed()) {
       out << "Test case <span style=\"color: green\"><b>Passed!</b></span><br><br>\n\n";
     }
     else {
-      // Failed cases will already have an error noted except for hidden cases in student file.
-      if (hidden && is_student) {
-        out << "Test case <span style=\"color: red\"><b>Failed.</b></span><br><br>\n";
-        return; // No more details.
-      }
-    
-      out << "Source";
-      if (!is_student) out << " (starting from line " << start_line << ")";
-      out << ":<br><br>\n";
-
-      PrintCode_HTML(out);
+      out << "Test case <span style=\"color: red\"><b>Failed.</b></span><br><br>\n";
     }
+
+    bool print_code = (!hidden || output.HasHiddenDetails()) &&
+                      (!Passed() || output.HasPassedDetails());
+    if (print_code) PrintCode_HTML(out);
   }
 
   void PrintDebug(std::ostream & out=std::cout) {
