@@ -14,22 +14,100 @@
 
 #include "emp/base/notify.hpp"
 
-struct OutputInfo {
+class OutputInfo {
+private:
   enum Detail {
-    NONE = 0,  // No output.
+    ERROR = 0, // Error; detail level unknown.
+    NONE,      // No output.
     PERCENT,   // Percentage of passed cases overall (e.g., "60%")
     SCORE,     // Number of points earned overall (e.g. "70 / 100")
     SUMMARY,   // Pass/fail status only for all (visible and hidden) test cases
     STUDENT,   // Details about failed visible cases; pass/fail status for hidden
     TEACHER,   // Detailed information about all failed test cases.
     FULL,      // Detailed information about all cases, including those passed.
-    DEBUG,     // Extra details (including parsing) for all cases.
-    ERROR      // Error; detail level unknown.
+    DEBUG      // Extra details (including parsing) for all cases.
   };
 
   std::string filename;  // If filename is empty, use std::cout
   Detail detail = Detail::STUDENT;
-  std::string type;
+  std::string type = "";
+
+  emp::Ptr<std::ostream> file_ptr = nullptr;
+
+public:
+  ~OutputInfo() {
+    if (filename.size()) file_ptr.Delete();
+  }
+
+  const std::string & GetFilename() const { return filename; }
+  const std::string & GetType() const { return type; }
+
+  bool IsHTML() const { return type == "html"; }
+  bool IsText() const { return type == "txt"; }
+
+  bool HasPercent() const { return detail >= PERCENT; }       // Print percent score at end of file?
+  bool HasScore() const { return detail >= SCORE; }           // Print numerical score at end of file?
+  bool HasSummary() const { return detail >= SUMMARY; }       // Print result summary at end of file?
+  bool HasResults() const { return detail >= STUDENT; }       // Print case-by-case pass/fail result?
+  bool HasFailedDetails() const { return detail >= STUDENT; } // Print code for visible failed cases?
+  bool HasHiddenDetails() const { return detail >= TEACHER; } // Print code for hidden failed cases?
+  bool HasPassedDetails() const { return detail >= FULL; }    // Print code for passed cases?
+  bool HasDebug() const { return detail >= DEBUG; }           // Print additional debug data?
+
+  std::ostream & GetFile() {
+    if (file_ptr.IsNull()) { InitFile(); }
+    return *file_ptr;
+  }
+
+  void InitFile() {
+    if (filename.size()) file_ptr = emp::NewPtr<std::ofstream>(filename);
+    else {
+      if (type.empty()) type = "txt";
+      file_ptr = &std::cout;
+    }
+
+    // If we are not outputting at least the summary, don't put a header on the file.
+    if (!HasSummary()) return;
+
+    std::string header = "";
+
+    switch (detail) {
+      case SUMMARY: header = "Autograde Summary"; break;
+      case STUDENT: header = "Autograde Results"; break;
+      case TEACHER: header = "Autograde Results (Instructor Eyes Only)"; break;
+      case FULL: header = "Autograde Results (All details)"; break;
+      case DEBUG: header = "Autograde Results (DEBUG mode)"; break;
+      default:
+        emp::notify::Error("Disallowed detail level: ", detail);
+    }
+
+    if (type == "html") {
+      *file_ptr << "<h1>" << header << "</h1>\n\n";
+    } else {
+      *file_ptr << header << "\n\n";
+    }
+  }
+
+  void SetFilename(const std::string & _in) {
+    emp::notify::TestError(file_ptr, "Cannot change filename once output file is used. (new name=", _in, ")");
+    filename = _in;
+
+    // If we don't have a type, use file extension to set one.
+    if (type.empty()) {
+      size_t dot_pos = filename.rfind(".");
+      std::string extension = filename.substr(dot_pos, filename.size() - dot_pos);
+      SetType(extension);
+    }
+  }
+  void SetDetail(const std::string & level) { detail = NameToDetail(level); }
+  void SetType(const std::string & _in) {
+    type = _in;
+    if (type == "htm") type = "html";
+    if (type != "html" && type != "txt") {
+      emp::notify::Warning("Unkown type '", type, "'; using TEXT.");
+      type = "txt";
+    }
+  }
 
   Detail NameToDetail(std::string level) {
     level = emp::to_lower(level);
@@ -57,22 +135,6 @@ struct OutputInfo {
       case Detail::DEBUG: return "DEBUG"; break;
       default:
         return "ERROR";
-    }
-  }
-
-  void SetDetail(const std::string & level) { detail = NameToDetail(level); }
-
-  // Make sure we have a type set for this output.
-  void FinalizeType() {
-    if (type.empty()) {
-      // If filename HAS been set, see if it has a useful suffix.
-      if (!filename.empty()) {
-        size_t dot_pos = filename.rfind(".");
-        std::string extension = filename.substr(dot_pos, filename.size() - dot_pos);
-        if (extension == ".html" || extension == ".htm") type = "html";
-        else type = "txt";
-      }
-      else type = "txt";
     }
   }
 
