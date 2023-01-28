@@ -1,23 +1,32 @@
 // Some important, built-in variables (see README.md for full list).
-//  ${#test} : The number of the test currently being run.
-//  ${CPP} : The name of the code file for the current test [can be overridden]
-//  ${EXE} : The name of the executable created for the current test [can be overridden]
-//  ${OUT} : The name of the file to write any generated standard output.
+//  ${DIR} : Directory where all Emperfect files should go.
+//     NOTE: This directory will be cleared before each test run, so be careful when setting it.
+
+// Initialize variable settings (such as those listed above); must come first.
+:Init DIR=".emperfect"
 
 // Setup how compilation should be performed
 // (Any new :Compile commands below would replace this one for subsequent tests.)
-:Compile exe="232_unit_test"
-  g++ -std=c++20 -Wall -Wextra ${CPP} -o ${EXE}
+// The variables below can be used:
+//   ${#test} : The number of the test currently being run.
+//   ${CPP} : Generated code file for the current test
+//   ${EXE} : Executable created for the current test
+//   ${OUT} : File to write any generated standard output.
+//   ${COMPILE} : File to write any compilation warnings or errors.
+// Any of these variables can also be overridden in the arguments for :Testcase
+:Compile
+  g++ -std=c++20 -Wall -Wextra ${CPP} -o ${EXE} 2> ${COMPILE}
 
 // Provide a header that should be included at the beginning of all tests.
 // Note: Settings provided here will be available thereafter.
 //       After this example :Header, ${test_var} can be used in any test as 2.0.
 // (Any new :Header commands below would replace this one for subsequent tests.)
 :Header test_var=2.0
-  #include <iostream>
-  #include "testing.hpp"
+#include <iostream>
+#include "../main.cpp"
 
-  double SquareRoot(double x) { return x / ${test_var}; }
+double SquareRoot(double x) { return x / ${test_var}; }
+double Sum(double x, double y) { return x + y; }
 
 // Set up the output that should be generated.
 // (Multiple :Output commands are cumulative, but only track subsequent tests.)
@@ -36,6 +45,8 @@
   std::string error_middle = " multi-segment";
   CHECK(str == "Test string.", "This is an error message for a", error_middle, " string test.");
   CHECK(str == "Test string2.", "This is an error message for a string test that should fail.");
+  CHECK(str == ",(", "Test should fail, but , and ( in quotes shouldn't cause parsing problems.");
+  CHECK(Sum(1.5,1.5) == 3.0, "Make sure , and ( also work outside of quotes, but in an expression.");
 
 :TestCase run_main=false, name="Hidden Tests", points=40.0, hidden=true
   CHECK(SquareRoot(4.0) == 2.0);
@@ -44,6 +55,7 @@
   CHECK(SquareRoot(0.0) == 0.0, "Fails when tested on ZERO.");
 
 :TestCase run_main=false, name="Free Points", points=50.0
+  std::cout << "Hello World!" << std::endl;
   CHECK( 2+2 == 4);
   CHECK( true );
   CHECK( "abc" == "abc");
@@ -54,4 +66,20 @@
   CHECK(SquareRoot(1000000.0) == 1000.0, "Fails when tested on large values.");
   CHECK(SquareRoot(0.0) == 0.0, "Fails when tested on ZERO.");
 
-:TestCase run_main=true, name="Basic IO test", points=10
+:TestCase run_main=true, name="Test with illegal C++ code.", points=10
+  CHECK(5==5);
+  CHECK(5==std::string("5"));
+
+:TestCase run_main=true, name="Basic IO test", points=10, expect="halfout.txt", match_case=false
+  CHECK(Half(4.0)==2.0);
+  CHECK(Half(100.0)==50.0);
+  CHECK(Half(1.0)==0.5);
+  CHECK(Half(2.2222) < 1.11115);
+  CHECK(Half(2.2222) > 1.11105);
+
+:TestCase name="Test Timeout", timeout=1
+  double x = 1.0;
+  for (size_t i = 0; i < 1000000000000; ++i) {
+    x *= 1.00001;
+  }
+  std::cout << x;
