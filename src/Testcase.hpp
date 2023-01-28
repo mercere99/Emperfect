@@ -6,7 +6,7 @@
  *  @file  Testcase.hpp
  *  @brief An individual testcase in Emperfect.
  * 
- *  @todo bold failed test cases in PrintCode_HTML
+ *  @todo bold failed test cases in PrintCode
  */
 
 #ifndef EMPERFECT_TESTCASE_HPP
@@ -78,7 +78,9 @@ public:
     return CountIf([](const auto & check){ return !check.passed; });
   }
 
-  bool Passed() const { return CountPassed() == checks.size() && output_match; }
+  bool Passed() const {
+    return CountPassed() == checks.size() && output_match && !hit_timeout && !compile_exit_code;
+  }
 
   // Test if a check at particular line number passed.
   bool Passed(size_t test_id) const {
@@ -168,33 +170,80 @@ public:
   }
 
 
-  void PrintCode_HTML(std::ostream & out) const {
-    out << "Source:<br><br>\n";
-    out << "<table style=\"background-color:#E3E0CF;\"><tr><td><pre>\n\n";
-    for (auto line : code) {
-      const bool highlight = false; // Passed(0);
-      if (highlight) out << "<b>";
-      out << line << "\n";
-      if (highlight) out << "</b>";
-    }
-    out << "</pre></tr></table>\n";
-  }
-
-  void PrintResult_HTML(OutputInfo & output) const {
-    if (!output.HasResults()) return;
+  void PrintCode(OutputInfo & output) const {
     std::ostream & out = output.GetFile();
 
-    // Notify if the test passed.
-    if (Passed()) {
-      out << "Test case <span style=\"color: green\"><b>Passed!</b></span><br><br>\n\n";
+    if (output.IsHTML()) {
+      out << "Source:<br><br>\n";
+      out << "<table style=\"background-color:#E3E0CF;\"><tr><td><pre>\n\n";
+      for (auto line : code) {
+        const bool highlight = false; // Passed(0);
+        if (highlight) out << "<b>";
+        out << line << "\n";
+        if (highlight) out << "</b>";
+      }
+      out << "</pre></tr></table>\n";
+    } else {
+      out << "Source:\n\n";
+      for (auto line : code) out << line << "\n";
     }
-    else {
-      out << "Test case <span style=\"color: red\"><b>Failed.</b></span><br><br>\n";
+  }
+
+  void PrintResult_Title(OutputInfo & output) const {
+    std::ostream & out = output.GetFile();
+
+    if (output.IsHTML()) {
+      out << "<h2>Test Case " << id << ": " << name;
+      if (hidden) out << " <small>[HIDDEN]</small>";
+      out << "</h2>\n";
+    } else {
+      out << "TEST CASE " << id << ": " << name;
+      if (hidden) out << " [HIDDEN]";
+      out << "\n";
     }
+  }
+
+  void PrintResult_Success(OutputInfo & output) const {
+    std::ostream & out = output.GetFile();
+
+    // Notify whether the overall test passed.
+    std::string color = "green";
+    std::string message = "PASSED!";
+    if (!Passed()) {
+      color = "red";
+      if (compile_exit_code) message = "FAILED during compilation.";
+      else if (hit_timeout) message = "FAILED due to timeout.";
+      else if (!output_match) message = "FAILED due to mis-matched output.";
+      else message = "FAILED due to unsuccessful check.";
+    }
+
+    if (output.IsHTML()) {
+      out << "<b>Result: <span style=\"color: " << color << "\">"
+          << message << "</b></span><br><br>\n\n";
+    } else {
+      out << "Result: " << message << "\n";
+    }
+  }
+
+  void PrintResult_Checks(OutputInfo & output) const {
+    // Print the results for each check.
+    if (!hidden || output.HasHiddenDetails()) {
+      for (const auto & check : checks) {
+        check.PrintResults(output);
+      }
+    }
+  }
+
+  void PrintResult(OutputInfo & output) const {
+    if (!output.HasResults()) return;
+
+    PrintResult_Title(output);
+    PrintResult_Success(output);
+    PrintResult_Checks(output);
 
     bool print_code = (!hidden || output.HasHiddenDetails()) &&
                       (!Passed() || output.HasPassedDetails());
-    if (print_code) PrintCode_HTML(out);
+    if (print_code) PrintCode(output);
   }
 
   void PrintDebug(std::ostream & out=std::cout) {
