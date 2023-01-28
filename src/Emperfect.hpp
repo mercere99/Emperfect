@@ -6,14 +6,21 @@
  *  @file  Emperfect.hpp
  *  @brief Main driver for Emperfect unit testing
  * 
- *  TODO:
- *  - Make log actually work.  (var_map["log"])
- *  - Refactor most of test-case running into Testcase.hpp
+ *  @todo Make log actually work.  (var_map["log"])
+ *  @todo Refactor most of test-case running into Testcase.hpp
+ *  @todo Allow a special symbol in the output to exclude from comparisons?  E.g., lines starting with %.
+ *  @todo make compile output append for every line past the first.
+ *  @todo REQUIRE specific function signatures
+ *  @todo Generate a full working code file for students to run the test cases locally.
+ *  @todo Collect times for how long test cases actually took.
+ *  @todo Add a "contact your instructors" error message for things that shouldn't break.
+ *  @todo Web interface for building a config file.
  */
 
 #ifndef EMPERFECT_EMPERFECT_HPP
 #define EMPERFECT_EMPERFECT_HPP
 
+#include <cmath>
 #include <cstdlib>
 #include <filesystem>
 #include <iostream>
@@ -131,14 +138,12 @@ private:
       if (value.size() && value[0] == '\"') value = emp::from_literal_string(value);
 
       if (arg == "detail") output.SetDetail(value);
-      else if (arg == "filename") output.filename = value;
-      else if (arg == "type") output.type = value;
+      else if (arg == "filename") output.SetFilename(value);
+      else if (arg == "type") output.SetType(value);
       else {
         emp::notify::Error("Uknown :Output argument '", arg, "'.");
       }
     }
-
-    output.FinalizeType();  // If type has not been set, use filename to set it.
   }
 
   // Use a set of arguments to configure a testcase.
@@ -306,10 +311,9 @@ private:
 
     // Phase 5: Record any necessary point calculations and feedback.
     RecordTestResults(test);
+  }
 
-    // @CAO: Should we allow a special symbol in the output to provide debug information without
-    // affecting correctness?
-
+  void OutputResults(Testcase & test) {
   }
 
   // Add a new Testcase and run it.
@@ -322,6 +326,7 @@ private:
     ConfigTestcase(test, args);
     LoadCode(test.code);
     RunTest(test);
+    OutputResults(test);
   }
 
 public:
@@ -370,6 +375,68 @@ public:
     Load (file, filename);
   }
 
+  double CountTotalPoints() const {
+    double total = 0.0;
+    for (const auto & test_case : tests) { total += test_case.points; }
+    return total;
+  }
+
+  double CountEarnedPoints() const {
+    double total = 0.0;
+    for (const auto & test_case : tests) { total += test_case.EarnedPoints(); }
+    return total;
+  }
+
+  double GetPercentEarned() const {
+    return std::round( 100.0 * CountEarnedPoints() / CountTotalPoints() );
+  }
+
+  void PrintSummary_Text(std::ostream & out) {
+    // Loop through test cases for printing to standard out.
+    for (auto & test_case : tests) {
+      std::cout << test_case.name
+                << " : passed " << test_case.CountPassed()
+                << " of " << test_case.GetNumChecks() << " checks; "
+                << test_case.EarnedPoints() << " points." << std::endl;
+    }
+    std::cout << "\nFinal Score: " << GetPercentEarned() << std::endl;
+  }
+  
+  void PrintSummary_HTML(std::ostream & out) {
+    out << "\n<hr>\n<h1>Summary</h1>\n\n"
+        << "<table style=\"background-color:#3fc0FF;\" cellpadding=\"5px\" border=\"1px solid black\" cellspacing=\"0\">"
+        << "<tr><th>Test Case<th>Checks<th>Passed<th>Failed<th>Score</tr>\n";
+
+    for (auto & test_case : tests) {
+      out << "<tr><td>" << test_case.name
+          << "<td>" << test_case.CountPassed()
+          << "<td>" << test_case.GetNumChecks()
+          << "<td>" << test_case.CountFailed()
+          << "<td>" << test_case.EarnedPoints() << " / " << test_case.points
+          << "</tr>\n";
+    }
+      out << "<tr><th>" << "TOTAL"
+          << "<td><td><td><td>" << CountEarnedPoints() << " / " << CountTotalPoints()
+          << "</tr>\n";
+
+    out << "</table>\n<h2>Final Score: <span style=\"color: blue\">"
+        << GetPercentEarned() << "%</span></h2>\n<br><br><br>\n" << std::endl;
+  }
+
+  void PrintSummary() {
+    for (auto & output : outputs) {
+      if (output.HasSummary()) {
+        if (output.IsHTML()) PrintSummary_HTML(output.GetFile());
+        else PrintSummary_Text(output.GetFile());
+      }
+      else if (output.HasScore()) {
+        output.GetFile() << CountEarnedPoints() << " of " << CountTotalPoints();
+      }
+      else if (output.HasPercent()) {
+        output.GetFile() << GetPercentEarned() << "%" << std::endl;
+      }
+    }
+  }
 
   void PrintDebug(std::ostream & out=std::cout) {
     out << "Vars: " << var_map.size() << "\n"
