@@ -117,19 +117,41 @@ struct CheckInfo {
     return out.str();
   }
 
-  void PrintResults_HTML(std::ostream & out) const {
-    if (passed) return; // No results printed for passed tests.
+  void PrintResults(OutputInfo & output) const {
+    std::ostream & out = output.GetFile();
+    if (passed && !output.HasPassedDetails()) return; // No results printed for passed checks.
 
-    // Show the failed code.
-    out << "<p>Check <span style=\"color: red\"><b>FAILED</b></span>:<br>\n"
-        << "Test: <code>" << test.ToString() << "</code><br><br>\n";
+    std::string color = "green";
+    std::string message = "Passed!";
+    if (!passed) { color = "red"; message = "Failed."; }
 
-    // If there was a comparison, show results on both sides of it.
-    if (test.GetRHS() != "") {
-      out << "<table><tr><td>Left side:<td><code>" << test.GetLHS()
-          << "</code><td>&nbsp;&nbsp;resolves to:<td><code>" << lhs_value << "</code></tr>\n"
-          << "<tr><td>Right side:<td><code>" << test.GetRHS() << "</code><td>&nbsp;&nbsp;resolves to:<td><code>"
-          << rhs_value << "</code></tr></table><br>\n";
+    if (output.IsHTML()) {
+      // Show the test code.
+      out << "Test: <b><code>" << test.ToString() << "</code></b>\n"
+          << "<p>Result: <span style=\"color: " << color << "\"><b>"
+          << message << "</b></span><br>\n";
+
+      // If there was a comparison, show results on both sides of it.
+      if (test.HasComp()) {
+        out << "<table><tr><td>Left side:<td><code>" << test.GetLHS()
+            << "</code><td>&nbsp;&nbsp;==><td><code>" << lhs_value << "</code></tr>\n"
+            << "<tr><td>Right side:<td><code>" << test.GetRHS() << "</code><td>&nbsp;&nbsp;==><td><code>"
+            << rhs_value << "</code></tr></table><br>\n";
+      }
+    } else {
+      // Show the test code.
+      out << "Test: " << test.ToString() << "\n\n";
+      out << "Result: " << message << "\n";
+
+      // If there was a comparison, show results on both sides of it.
+      if (test.HasComp()) {
+        size_t max_width = std::max(test.GetLHS().size(), test.GetRHS().size());
+        out << "Left side : " << emp::pad_back(test.GetLHS(), ' ', max_width)
+                              << "  ==>  " << lhs_value << "\n"
+            << "Right side: " << emp::pad_back(test.GetRHS(), ' ', max_width)
+                              << "  ==>  " << rhs_value << "\n";
+      }
+
     }
   }
 };
