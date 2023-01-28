@@ -95,7 +95,7 @@ public:
     // If we don't have a type, use file extension to set one.
     if (type.empty()) {
       size_t dot_pos = filename.rfind(".");
-      std::string extension = filename.substr(dot_pos, filename.size() - dot_pos);
+      std::string extension = filename.substr(dot_pos+1, filename.size() - dot_pos-1);
       SetType(extension);
     }
   }
