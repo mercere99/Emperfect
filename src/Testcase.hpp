@@ -240,9 +240,15 @@ public:
   }
 
   void PrintInputFile(OutputInfo & output) const {
-    if (input_filename.size() == 0) return; // No inputs to print.
-
     std::ostream & out = output.GetFile();
+
+    if (input_filename.size() == 0) { // No inputs to print.
+      out << "No input for test.";
+      if (output.IsHTML()) out << "<br>";
+      out << "\n";
+      return;
+    }
+
     emp::File input_file(input_filename);
 
     if (output.IsHTML()) {
@@ -255,8 +261,7 @@ public:
       }
       out << "</pre></tr></table>\n";
     } else {
-      out << "Output Differences for Test:\n\n"
-          << "========== INPUT ==========\n";
+      out << "========== INPUT ==========\n";
       for (auto line : input_file) out << line << "\n";
     }
   }
@@ -267,7 +272,6 @@ public:
     emp::File expect_file(expect_filename);
 
     if (output.IsHTML()) {
-      out << "Output Differences for Test:<br><br>\n";
       out << "<table>\n"
           << "<tr><td><th>Your Output<td><th>ExpectedOutput</tr>\n"
           << "<tr><td><td valign=\"top\" style=\"background-color:LightGoldenrodYellow\"><pre>\n";
@@ -281,8 +285,7 @@ public:
       }
       out << "</pre></tr></table>\n";
     } else {
-      out << "Output Differences for Test:\n\n"
-          << "========== YOUR OUTPUT ==========\n";
+      out << "========== YOUR OUTPUT ==========\n";
       for (auto line : output_file) out << line << "\n";
       out << "\n========== EXPECTED OUTPUT ==========\n";
       for (auto line : expect_file) out << line << "\n";
