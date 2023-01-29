@@ -15,4 +15,5 @@ int main(int argc, char *argv[])
 
   Emperfect control;
   control.Load(argv[1]);
+  // control.PrintDebug();
 }
