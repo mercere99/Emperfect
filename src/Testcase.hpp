@@ -254,10 +254,9 @@ public:
     emp::File input_file(input_filename);
 
     if (output.IsHTML()) {
-      out << "Input for Test:<br><br>\n";
       out << "<table>\n"
-          << "<tr><td><th>Input</tr>\n"
-          << "<tr><td><td valign=\"top\" style=\"background-color:LightGreen\"><pre>\n";
+          << "<tr><th>Input</tr>\n"
+          << "<tr><td valign=\"top\" style=\"background-color:LightGreen\"><pre>\n";
       for (auto line : input_file) {
         out << line << "\n";
       }
@@ -275,13 +274,13 @@ public:
 
     if (output.IsHTML()) {
       out << "<table>\n"
-          << "<tr><td><th>Your Output<td><th>ExpectedOutput</tr>\n"
-          << "<tr><td><td valign=\"top\" style=\"background-color:LightGoldenrodYellow\"><pre>\n";
+          << "<tr><th>Your Output<td>&nbsp;<th>ExpectedOutput</tr>\n"
+          << "<tr><td valign=\"top\" style=\"background-color:LightGoldenrodYellow\"><pre>\n";
       for (auto line : output_file) {
         out << line << "\n";
       }
       out << "</pre>\n"
-          << "<td><td valign=\"top\" style=\"background-color:LightBlue\"><pre>\n";
+          << "<td>&nbsp;<td valign=\"top\" style=\"background-color:LightBlue\"><pre>\n";
       for (auto line : expect_file) {
         out << line << "\n";
       }
