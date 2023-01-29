@@ -77,7 +77,9 @@ double Sum(double x, double y) { return x + y; }
   CHECK(Half(2.2222) < 1.11115);
   CHECK(Half(2.2222) > 1.11105);
 
-:TestCase name="Test Timeout", timeout=1
+:TestCase run_main=true, name="Failed IO test due to case", points=10, expect="halfout.txt", match_case=true
+
+:TestCase name="Test Timeout", timeout=1, points=15
   double x = 1.0;
   for (size_t i = 0; i < 1000000000000; ++i) {
     x *= 1.00001;
