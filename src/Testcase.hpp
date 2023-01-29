@@ -274,7 +274,7 @@ public:
 
     if (output.IsHTML()) {
       out << "<table>\n"
-          << "<tr><th>Your Output<td>&nbsp;<th>ExpectedOutput</tr>\n"
+          << "<tr><th>Your Output<th> <th>Expected Output</tr>\n"
           << "<tr><td valign=\"top\" style=\"background-color:LightGoldenrodYellow\"><pre>\n";
       for (auto line : output_file) {
         out << line << "\n";
