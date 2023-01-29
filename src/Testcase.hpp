@@ -16,6 +16,14 @@
 
 #include "CheckInfo.hpp"
 
+enum class TestStatus {
+  PASSED = 0,
+  FAILED_COMPILE, // Compilation failed.
+  FAILED_CHECK,   // Failed one of the CHECK statements.
+  FAILED_TIME,    // Took too long and had a timeout.
+  FAILED_OUTPUT   // Output didn't match expected.
+};
+
 class Testcase {
   friend class Emperfect;
 private:
@@ -78,9 +86,27 @@ public:
     return CountIf([](const auto & check){ return !check.passed; });
   }
 
-  bool Passed() const {
-    return CountPassed() == checks.size() && output_match && !hit_timeout && !compile_exit_code;
+  TestStatus GetStatus() const {
+    if (compile_exit_code) return TestStatus::FAILED_COMPILE;
+    if (CountPassed() != checks.size()) return TestStatus::FAILED_CHECK;
+    if (hit_timeout) return TestStatus::FAILED_TIME;
+    if (!output_match) return TestStatus::FAILED_OUTPUT;
+    return TestStatus::PASSED;
   }
+
+  std::string GetStatusString() const {
+    switch (GetStatus()) {
+    case TestStatus::PASSED: return "Passing";
+    case TestStatus::FAILED_CHECK: return "Checks Failing";
+    case TestStatus::FAILED_COMPILE: return "Compilation Error";
+    case TestStatus::FAILED_OUTPUT: return "Incorrect Output";
+    case TestStatus::FAILED_TIME: return "Timed Out";
+    }
+    return "Unknown";
+  }
+
+  bool Passed() const { return GetStatus() == TestStatus::PASSED; }
+  bool Failed() const { return !Passed(); }
 
   // Test if a check at particular line number passed.
   bool Passed(size_t test_id) const {
@@ -173,8 +199,14 @@ public:
   void PrintCode(OutputInfo & output) const {
     std::ostream & out = output.GetFile();
 
+    if (code.size() == 0) {
+      out << "No test sourcecode.\n";
+      if (output.IsHTML()) out << "<br><br>";
+      return;
+    }
+
     if (output.IsHTML()) {
-      out << "Source:<br><br>\n";
+      out << "Sourcecode for Test:<br><br>\n";
       out << "<table style=\"background-color:#E3E0CF;\"><tr><td><pre>\n\n";
       for (auto line : code) {
         const bool highlight = false; // Passed(0);
@@ -184,8 +216,54 @@ public:
       }
       out << "</pre></tr></table>\n";
     } else {
-      out << "Source:\n\n";
+      out << "Sourcecode for Test:\n\n";
       for (auto line : code) out << line << "\n";
+    }
+  }
+
+  void PrintCompileResults(OutputInfo & output) const {
+    std::ostream & out = output.GetFile();
+    emp::File file(compile_filename);
+
+    if (output.IsHTML()) {
+      out << "<p>Compile Results for Test:<br><br>\n";
+      out << "<table style=\"background-color:Lavender\">"
+          << "<tr><td style=\"height:400px; width:800px; overflow-y:scroll; display:block;\"><pre>\n\n";
+      for (auto line : file) {
+        out << line << "\n";
+      }
+      out << "</pre></tr></table>\n";
+    } else {
+      out << "Compile Results for Test:\n\n";
+      for (auto line : file) out << line << "\n";
+    }
+  }
+
+  void PrintOutputDiff(OutputInfo & output) const {
+    std::ostream & out = output.GetFile();
+    emp::File output_file(output_filename);
+    emp::File expect_file(expect_filename);
+
+    if (output.IsHTML()) {
+      out << "Output Differences for Test:<br><br>\n";
+      out << "<table>\n"
+          << "<tr><td><th>Your Output<td><th>ExpectedOutput</tr>\n"
+          << "<tr><td><td valign=\"top\" style=\"background-color:LightGoldenrodYellow\"><pre>\n";
+      for (auto line : output_file) {
+        out << line << "\n";
+      }
+      out << "</pre>\n"
+          << "<td><td valign=\"top\" style=\"background-color:LightBlue\"><pre>\n";
+      for (auto line : expect_file) {
+        out << line << "\n";
+      }
+      out << "</pre></tr></table>\n";
+    } else {
+      out << "Output Differences for Test:\n\n"
+          << "========== YOUR OUTPUT ==========\n";
+      for (auto line : output_file) out << line << "\n";
+      out << "\n========== EXPECTED OUTPUT ==========\n";
+      for (auto line : expect_file) out << line << "\n";
     }
   }
 
@@ -193,7 +271,7 @@ public:
     std::ostream & out = output.GetFile();
 
     if (output.IsHTML()) {
-      out << "<h2>Test Case " << id << ": " << name;
+      out << "<h2 id=\"Test" << id << "\">Test Case " << id << ": " << name;
       if (hidden) out << " <small>[HIDDEN]</small>";
       out << "</h2>\n";
     } else {
@@ -207,14 +285,19 @@ public:
     std::ostream & out = output.GetFile();
 
     // Notify whether the overall test passed.
-    std::string color = "green";
-    std::string message = "PASSED!";
-    if (!Passed()) {
-      color = "red";
-      if (compile_exit_code) message = "FAILED during compilation.";
-      else if (hit_timeout) message = "FAILED due to timeout.";
-      else if (!output_match) message = "FAILED due to mis-matched output.";
-      else message = "FAILED due to unsuccessful check.";
+    std::string color, message;
+
+    switch (GetStatus()) {
+      case TestStatus::PASSED:
+        color = "Green"; message = "PASSED!"; break;
+      case TestStatus::FAILED_CHECK:
+        color = "Red"; message = "FAILED due to unsuccessful check."; break;
+      case TestStatus::FAILED_COMPILE:
+        color = "DarkRed"; message = "FAILED during compilation."; break;
+      case TestStatus::FAILED_OUTPUT:
+        color = "OrangeRed"; message = "FAILED due to mis-matched output."; break;
+      case TestStatus::FAILED_TIME:
+        color = "Purple"; message = "FAILED due to timeout."; break;
     }
 
     if (output.IsHTML()) {
@@ -239,11 +322,20 @@ public:
 
     PrintResult_Title(output);
     PrintResult_Success(output);
-    PrintResult_Checks(output);
 
-    bool print_code = (!hidden || output.HasHiddenDetails()) &&
-                      (!Passed() || output.HasPassedDetails());
+    // Print extra information only if we are allowed to.
+    if ((hidden && !output.HasHiddenDetails())) return;
+
+    // Decide what else we print based on the status.
+    bool print_checks = GetStatus() == TestStatus::FAILED_CHECK || output.HasPassedDetails();
+    bool print_code = Failed() || output.HasPassedDetails();
+    bool print_compile = GetStatus() == TestStatus::FAILED_COMPILE;
+    bool print_diff = GetStatus() == TestStatus::FAILED_OUTPUT;
+
+    if (print_checks) PrintResult_Checks(output);
     if (print_code) PrintCode(output);
+    if (print_compile) PrintCompileResults(output);
+    if (print_diff) PrintOutputDiff(output);
   }
 
   void PrintDebug(std::ostream & out=std::cout) {
