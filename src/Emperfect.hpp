@@ -15,6 +15,7 @@
  *  @todo Collect times for how long test cases actually took.
  *  @todo Add a "contact your instructors" error message for things that shouldn't break.
  *  @todo Web interface for building a config file.
+ *  @todo Do a better job with scrolling text.  Maybe make wrap horizontally (as on the command line)?
  */
 
 #ifndef EMPERFECT_EMPERFECT_HPP
@@ -281,6 +282,11 @@ private:
       }
       else emp::notify::Error("Unknown field in result file: ", field);
     }
+
+    // And print results to the output files...
+    for (auto & output : outputs) {
+      test.PrintResult(output);
+    }
   }
 
 
@@ -368,6 +374,8 @@ public:
         emp::notify::Error("Unknown Emperfect command '", command, "'.");
       }
     }
+
+    PrintSummary();
   }
 
   void Load(std::string filename) {
@@ -394,7 +402,7 @@ public:
   void PrintSummary_Text(std::ostream & out) {
     // Loop through test cases for printing to standard out.
     for (auto & test_case : tests) {
-      std::cout << test_case.name
+      std::cout << test_case.id << " : " << test_case.name
                 << " : passed " << test_case.CountPassed()
                 << " of " << test_case.GetNumChecks() << " checks; "
                 << test_case.EarnedPoints() << " points." << std::endl;
@@ -405,18 +413,20 @@ public:
   void PrintSummary_HTML(std::ostream & out) {
     out << "\n<hr>\n<h1>Summary</h1>\n\n"
         << "<table style=\"background-color:#3fc0FF;\" cellpadding=\"5px\" border=\"1px solid black\" cellspacing=\"0\">"
-        << "<tr><th>Test Case<th>Checks<th>Passed<th>Failed<th>Score</tr>\n";
+        << "<tr><th>Test Case<th>Status<th>Checks<th>Passed<th>Failed<th>Score</tr>\n";
 
     for (auto & test_case : tests) {
-      out << "<tr><td>" << test_case.name
-          << "<td>" << test_case.CountPassed()
+      out << "<tr>" 
+          << "<td>" << test_case.id << ": <a href=\"#Test" << test_case.id << "\">" << test_case.name << "</a>"
+          << "<td>" << test_case.GetStatusString()
           << "<td>" << test_case.GetNumChecks()
+          << "<td>" << test_case.CountPassed()
           << "<td>" << test_case.CountFailed()
           << "<td>" << test_case.EarnedPoints() << " / " << test_case.points
           << "</tr>\n";
     }
       out << "<tr><th>" << "TOTAL"
-          << "<td><td><td><td>" << CountEarnedPoints() << " / " << CountTotalPoints()
+          << "<td><td><td><td><td>" << CountEarnedPoints() << " / " << CountTotalPoints()
           << "</tr>\n";
 
     out << "</table>\n<h2>Final Score: <span style=\"color: blue\">"
