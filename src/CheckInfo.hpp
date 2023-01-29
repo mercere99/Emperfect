@@ -68,7 +68,7 @@ struct CheckInfo {
   std::string rhs_value = "";  // Resulting value on right (e.g., "21", if rhs is "x+5" and x=16)
   bool passed = false;         // Was this check successful?
   bool resolved = false;       // Are we done performing this check?
-  std::string msg;             // Message from test runner for students.
+  std::string error_out;       // Message from test runner for students.
 
   CheckInfo(const std::string & check_body, std::string _location, size_t _id)
     : location(_location), id(_id)
@@ -127,9 +127,13 @@ struct CheckInfo {
 
     if (output.IsHTML()) {
       // Show the test code.
-      out << "Test: <b><code>" << test.ToString() << "</code></b>\n"
+      out << "\nTest: <b><code>" << test.ToString() << "</code></b>\n"
           << "<p>Result: <span style=\"color: " << color << "\"><b>"
           << message << "</b></span><br>\n";
+
+      if (error_out.size()) {
+        out << "Error Message: " << error_out << "<br>\n";
+      }
 
       // If there was a comparison, show results on both sides of it.
       if (test.HasComp()) {
@@ -140,8 +144,11 @@ struct CheckInfo {
       }
     } else {
       // Show the test code.
-      out << "Test: " << test.ToString() << "\n\n";
+      out << "\nTest: " << test.ToString() << "\n\n";
       out << "Result: " << message << "\n";
+      if (error_out.size()) {
+        out << "Error Message: " << error_out << "\n";
+      }
 
       // If there was a comparison, show results on both sides of it.
       if (test.HasComp()) {
