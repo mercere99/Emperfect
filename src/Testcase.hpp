@@ -227,8 +227,10 @@ public:
 
     if (output.IsHTML()) {
       out << "<p>Compile Results for Test:<br><br>\n";
+      std::string size_style = "width:800px;";
+      if (file.size() > 25) size_style += " height:400px; overflow-y:scroll;";
       out << "<table style=\"background-color:Lavender\">"
-          << "<tr><td style=\"height:400px; width:800px; overflow-y:scroll; display:block;\"><pre>\n\n";
+          << "<tr><td style=\"" << size_style << " display:block;\"><pre>\n\n";
       for (auto line : file) {
         out << line << "\n";
       }
