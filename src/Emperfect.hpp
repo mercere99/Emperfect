@@ -423,7 +423,8 @@ public:
 
     for (auto & test_case : tests) {
       out << "<tr>" 
-          << "<td>" << test_case.id << ": <a href=\"#Test" << test_case.id << "\">" << test_case.name << "</a>"
+	// << "<td>" << test_case.id << ": <a href=\"#Test" << test_case.id << "\">" << test_case.name << "</a>"
+          << "<td>" << test_case.id << ": " << test_case.name
           << "<td>" << test_case.GetStatusString()
           << "<td>" << test_case.GetNumChecks()
           << "<td>" << test_case.CountPassed()
