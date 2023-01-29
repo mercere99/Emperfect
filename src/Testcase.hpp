@@ -239,6 +239,28 @@ public:
     }
   }
 
+  void PrintInputFile(OutputInfo & output) const {
+    if (input_filename.size() == 0) return; // No inputs to print.
+
+    std::ostream & out = output.GetFile();
+    emp::File input_file(input_filename);
+
+    if (output.IsHTML()) {
+      out << "Input for Test:<br><br>\n";
+      out << "<table>\n"
+          << "<tr><td><th>Input</tr>\n"
+          << "<tr><td><td valign=\"top\" style=\"background-color:LightGreen\"><pre>\n";
+      for (auto line : input_file) {
+        out << line << "\n";
+      }
+      out << "</pre></tr></table>\n";
+    } else {
+      out << "Output Differences for Test:\n\n"
+          << "========== INPUT ==========\n";
+      for (auto line : input_file) out << line << "\n";
+    }
+  }
+
   void PrintOutputDiff(OutputInfo & output) const {
     std::ostream & out = output.GetFile();
     emp::File output_file(output_filename);
@@ -264,6 +286,7 @@ public:
       for (auto line : output_file) out << line << "\n";
       out << "\n========== EXPECTED OUTPUT ==========\n";
       for (auto line : expect_file) out << line << "\n";
+      out << "\n========== END OUTPUT ==========\n";
     }
   }
 
@@ -330,11 +353,13 @@ public:
     bool print_checks = GetStatus() == TestStatus::FAILED_CHECK || output.HasPassedDetails();
     bool print_code = Failed() || output.HasPassedDetails();
     bool print_compile = GetStatus() == TestStatus::FAILED_COMPILE;
+    bool print_input = GetStatus() == TestStatus::FAILED_OUTPUT || output.HasPassedDetails();
     bool print_diff = GetStatus() == TestStatus::FAILED_OUTPUT;
 
     if (print_checks) PrintResult_Checks(output);
     if (print_code) PrintCode(output);
     if (print_compile) PrintCompileResults(output);
+    if (print_input) PrintInputFile(output);
     if (print_diff) PrintOutputDiff(output);
   }
 
