@@ -25,6 +25,7 @@
  *  @todo Web interface for building a config file.
  *  @todo Do a better job with scrolling text.  Maybe make wrap horizontally (as on the command line)?
  *  @todo Allow a testcase to provide more dynamic feedback based on student errors.
+ *  @todo Add a way to "check near", perhaps a =~ operator in checks or some such?
  */
 
 #ifndef EMPERFECT_EMPERFECT_HPP
