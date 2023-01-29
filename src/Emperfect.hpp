@@ -6,16 +6,25 @@
  *  @file  Emperfect.hpp
  *  @brief Main driver for Emperfect unit testing
  * 
+ *  URGENT
+ *
+ *  SOON
+ *  @todo REQUIRE specific function signatures
+ *  @todo Generate a full working code file for students to run the test cases locally.
+ *  @todo Show the student any command-line arguments used.
+ *  @todo make var_map["DIR"] work properly (i.e., case insensitive)
+ *  @todo Figure out why quotes aren't removed from :Init dir=".emperfect"
+ * 
+ *  USEFUL
  *  @todo Make log actually work.  (var_map["log"])
  *  @todo Refactor most of test-case running into Testcase.hpp
  *  @todo Allow a special symbol in the output to exclude from comparisons?  E.g., lines starting with %.
- *  @todo make compile output append for every line past the first.
- *  @todo REQUIRE specific function signatures
- *  @todo Generate a full working code file for students to run the test cases locally.
+ *  @todo If multi-line compile, make output append for every line past the first.
  *  @todo Collect times for how long test cases actually took.
  *  @todo Add a "contact your instructors" error message for things that shouldn't break.
  *  @todo Web interface for building a config file.
  *  @todo Do a better job with scrolling text.  Maybe make wrap horizontally (as on the command line)?
+ *  @todo Allow a testcase to provide more dynamic feedback based on student errors.
  */
 
 #ifndef EMPERFECT_EMPERFECT_HPP
@@ -275,7 +284,7 @@ private:
       }
       else if (field == ":LHS:") test.checks[check_id].lhs_value = line;
       else if (field == ":RHS:") test.checks[check_id].rhs_value = line;
-      else if (field == ":MSG:") test.checks[check_id].msg = line;
+      else if (field == ":MSG:") test.checks[check_id].error_out = line;
       else if (field == "SCORE") {
         test.score = emp::from_string<double>(line);
         std::cout << "Score = " << test.score << " of " << test.points << std::endl;
@@ -319,9 +328,6 @@ private:
     RecordTestResults(test);
   }
 
-  void OutputResults(Testcase & test) {
-  }
-
   // Add a new Testcase and run it.
   void AddTestcase(const std::string & args) {
     emp::notify::TestError(compile.size() == 0, "Cannot set up testcase without compile rules.");
@@ -332,7 +338,6 @@ private:
     ConfigTestcase(test, args);
     LoadCode(test.code);
     RunTest(test);
-    OutputResults(test);
   }
 
 public:
@@ -402,12 +407,12 @@ public:
   void PrintSummary_Text(std::ostream & out) {
     // Loop through test cases for printing to standard out.
     for (auto & test_case : tests) {
-      std::cout << test_case.id << " : " << test_case.name
-                << " : passed " << test_case.CountPassed()
-                << " of " << test_case.GetNumChecks() << " checks; "
-                << test_case.EarnedPoints() << " points." << std::endl;
+      out << test_case.id << " : " << test_case.name
+          << " : passed " << test_case.CountPassed()
+          << " of " << test_case.GetNumChecks() << " checks; "
+          << test_case.EarnedPoints() << " points." << std::endl;
     }
-    std::cout << "\nFinal Score: " << GetPercentEarned() << std::endl;
+    out << "\nFinal Score: " << GetPercentEarned() << std::endl;
   }
   
   void PrintSummary_HTML(std::ostream & out) {
