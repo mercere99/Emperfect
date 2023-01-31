@@ -86,7 +86,7 @@ struct CheckInfo {
     std::stringstream out;
 
     // Generate code for this test.
-    out << "  /* CHECK #" << id << " */\n"
+    out << "  // CHECK #" << id << "\n"
         << "  {\n"
         << "    auto _emperfect_lhs = " << test.GetLHS() << ";\n";
     if (test.HasComp()) {

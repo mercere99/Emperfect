@@ -9,6 +9,8 @@
  *  URGENT
  *
  *  SOON
+ *  @todo Fix line numbers in output to students.
+ *  @todo Make shorter compile output still scroll horizontally if needed.
  *  @todo REQUIRE specific function signatures
  *  @todo Generate a full working code file for students to run the test cases locally.
  *  @todo Show the student any command-line arguments used.
@@ -43,6 +45,11 @@
 
 #include "OutputInfo.hpp"
 #include "Testcase.hpp"
+
+// Set -DEMPERFECT_COMMENT on the command line to change internal comment marker (removed for students).
+#ifndef EMPERFECT_COMMENT
+#define EMPERFECT_COMMENT "///"
+#endif
 
 class Emperfect {
 private:
@@ -352,7 +359,7 @@ public:
   // Load test configurations from a stream.
   void Load(std::istream & is, std::string stream_name="input") {
     input_file.Load(is);
-    input_file.RemoveComments("//");
+    input_file.RemoveComments(EMPERFECT_COMMENT);
     // NOTE: Do not change whitespace as it might matter for output code.
     
     // Setup the output file for all of the tests.

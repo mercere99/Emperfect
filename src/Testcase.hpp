@@ -126,17 +126,20 @@ public:
     size_t check_pos = processed_code.find("CHECK(");
     size_t check_end = 0;
     size_t check_id = 0;
+    size_t line_num = 0;
+    std::string code_segment;
     while (check_pos != std::string::npos) {
-      std::string location = emp::to_string("Test #", id, ", Check #", check_id);
-
       // Output everything from the end of the last check to the beginning of this one.
-      out << processed_code.substr(check_end, check_pos-check_end);
+      code_segment = processed_code.substr(check_end, check_pos-check_end);
+      line_num += emp::count(code_segment, '\n');
+      out << code_segment;
 
       // Isolate this check and divide it into arguments.
       check_end = emp::find_paren_match(processed_code, check_pos+5);
       const std::string check_body = processed_code.substr(check_pos+6, check_end-check_pos-6);
       check_end += 2;  // Advance the end past the ");" at the end of the check.
 
+      std::string location = emp::to_string("Testcase #", id, ", Line", line_num, " (check ", check_id, ")");
       checks.emplace_back(check_body, location, check_id);
       out << checks.back().ToCPP();
 
@@ -184,7 +187,7 @@ public:
       << "  _emperfect_results << \"SCORE \" << (_emperfect_passed ? "
           << points << " : 0) << \"\\n\";\n"
       << "}\n\n"
-      << "/* Build a test runner to be executed before main(). */\n"
+      << "// Build a test runner to be executed before main().\n"
       << "struct _emperfect_runner {\n"
       << "  _emperfect_runner() {\n"
       << "    _emperfect_main();\n";
