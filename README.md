@@ -60,7 +60,7 @@ Standard out defaults to "txt"; files default to file extension.  The `detail` l
 | --------- | ------------------------------------------------------------------------------------- |
 | "none"    | No output.                                                                            |
 | "percent" | Percentage of passed cases overall (e.g., "60%")                                      |
-| "score"   | Number of points earned overall (e.g. "70 / 100")                                     |
+| "score"   | Number of points earned overall (e.g. "70 of 100")                                     |
 | "summary" | Pass/fail status for all (visible and hidden) test cases                              |
 | "student" | Detailed information about failed visible cases, but only pass/fail status for others |
 | "teacher" | Detailed information about all failed test cases.                                     |
