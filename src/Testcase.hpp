@@ -177,7 +177,7 @@ public:
       << "void _emperfect_main() {\n"
       << "  std::ofstream _emperfect_results(\"" << result_filename << "\");\n"
       << "  bool _emperfect_passed = true;\n"
-      << "  size_t _emperfect_check_id = 0;\n\n";
+      << "  [[maybe_unused]] size_t _emperfect_check_id = 0;\n\n";
 
     // Add updated code for this specific test.
     cpp_file << ProcessChecks() << "\n";
