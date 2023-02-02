@@ -223,7 +223,7 @@ private:
     std::stringstream processed_header;
     for (const auto & line : header) processed_header << ApplyVars(line) << "\n";
 
-    test.GenerateCPP(processed_header.str());
+    test.GenerateTestCPP(processed_header.str());
   }
 
   void CompileTestCPP(Testcase & test) {
@@ -422,14 +422,14 @@ public:
   
   void PrintSummary_HTML(std::ostream & out) {
     out << "<h2>Final Score: <span style=\"color: blue\">"
-        << GetPercentEarned() << "%</span></h2>\n<br>\n" << std::endl;
+        << GetPercentEarned() << "%</span></h2>\n" << std::endl;
 
-    out << "\n<h1>Summary</h1>\n\n"
-        << "<table style=\"background-color:#3fc0FF;\" cellpadding=\"5px\" border=\"1px solid black\" cellspacing=\"0\">"
+    out << "<table style=\"background-color:#3fc0FF;\" cellpadding=\"5px\" border=\"1px solid black\" cellspacing=\"0\">"
         << "<tr><th>Test Case<th>Status<th>Checks<th>Passed<th>Failed<th>Score</tr>\n";
 
     for (auto & test_case : tests) {
-      out << "<tr>" 
+  //    out << "<tr>" 
+      out << "<tr onclick=\"window.location='#Test" << test_case.id << "';\">" 
 	// << "<td>" << test_case.id << ": <a href=\"#Test" << test_case.id << "\">" << test_case.name << "</a>"
           << "<td>" << test_case.id << ": " << test_case.name
           << "<td>" << test_case.GetStatusString()
@@ -442,7 +442,8 @@ public:
       out << "<tr><th>" << "TOTAL"
           << "<td><td><td><td><td>" << CountEarnedPoints() << " / " << CountTotalPoints()
           << "</tr></table>\n"
-          << "\n<hr>";
+          << "<p>Click on a row above to jump to the test case, or scroll down below for more details.\n"
+          << "<hr>";
   }
 
   void PrintSummary() {

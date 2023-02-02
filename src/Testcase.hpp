@@ -153,7 +153,8 @@ public:
     return out.str();
   }
   
-  void GenerateCPP(const std::string & header) {
+  // Generate a C++ file for internal testing with the provided header.
+  void GenerateTestCPP(const std::string & header) {
     // If we are using a file for test code, load it in.
     if (code_filename.size()) {
       emp::notify::TestError(code.size(),
