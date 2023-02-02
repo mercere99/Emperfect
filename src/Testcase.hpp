@@ -80,10 +80,10 @@ public:
 
   size_t GetNumChecks() const { return checks.size(); }
   size_t CountPassed() const {
-    return CountIf([](const auto & check){ return check.passed; });
+    return CountIf([](const auto & check){ return check.Passed(); });
   }
   size_t CountFailed() const {
-    return CountIf([](const auto & check){ return !check.passed; });
+    return CountIf([](const auto & check){ return !check.Passed(); });
   }
 
   TestStatus GetStatus() const {
@@ -111,9 +111,9 @@ public:
   // Test if a check at particular line number passed.
   bool Passed(size_t test_id) const {
     for (const auto & check : checks) {
-      if (check.id == test_id) return check.passed;
+      if (check.GetID() == test_id) return check.Passed();
     }
-    return true;  // No check on line == passed.
+    return false; // No check here.
   }
 
   double EarnedPoints() const { return Passed() ? points : 0.0; }
