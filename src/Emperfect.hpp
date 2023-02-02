@@ -7,8 +7,11 @@
  *  @brief Main driver for Emperfect unit testing
  * 
  *  URGENT
- *
+ *  @todo Allow CHECK in loops?
+ * 
  *  SOON
+ *  @todo Add a CHECK_TYPE() version of check
+ *  @todo Allow CHECK() in headers.
  *  @todo Fix line numbers in output to students.
  *  @todo Make shorter compile output still scroll horizontally if needed.
  *  @todo REQUIRE specific function signatures
@@ -126,6 +129,12 @@ private:
       std::cout << "CREATING: " << dir_name << std::endl;
       std::filesystem::create_directories(dir_name);
     }
+
+    // Setup the output file for all of the tests.
+    std::string log_filename = emp::to_string(var_map["dir"], "/", var_map["log"]);
+    std::ofstream test_log(log_filename);
+    test_log << "== EMPERFECT TEST LOG ==\n" << std::endl;
+    test_log.close();  // Individual tests will re-open and append to the log.
   }
 
   // Load a block of code from the file, using file_scan
@@ -287,22 +296,16 @@ private:
       if (field == ":CHECK:") check_id = emp::from_string<size_t>(line);
       else if (field == ":TEST:") {} // We already have this...
       else if (field == ":RESULT:") {
-        test.checks[check_id].passed = (line == "1");
-        test.checks[check_id].resolved = true;
+        test.checks[check_id].PushResult(line == "1");
       }
-      else if (field == ":LHS:") test.checks[check_id].lhs_value = line;
-      else if (field == ":RHS:") test.checks[check_id].rhs_value = line;
-      else if (field == ":MSG:") test.checks[check_id].error_out = line;
+      else if (field == ":LHS:") test.checks[check_id].PushLHSValue(line);
+      else if (field == ":RHS:") test.checks[check_id].PushRHSValue(line);
+      else if (field == ":MSG:") test.checks[check_id].PushErrorMsg(line);
       else if (field == "SCORE") {
         test.score = emp::from_string<double>(line);
         std::cout << "Score = " << test.score << " of " << test.points << std::endl;
       }
       else emp::notify::Error("Unknown field in result file: ", field);
-    }
-
-    // And print results to the output files...
-    for (auto & output : outputs) {
-      test.PrintResult(output);
     }
   }
 
@@ -359,15 +362,9 @@ public:
   // Load test configurations from a stream.
   void Load(std::istream & is, std::string stream_name="input") {
     input_file.Load(is);
-    input_file.RemoveComments(EMPERFECT_COMMENT);
+    input_file.RemoveComments(EMPERFECT_COMMENT); // Remove comments that shouldn't be in output.
     // NOTE: Do not change whitespace as it might matter for output code.
     
-    // Setup the output file for all of the tests.
-    std::string log_filename = emp::to_string(var_map["dir"], "/", var_map["log"]);
-    std::ofstream test_log(log_filename);
-    test_log << "== EMPERFECT TEST LOG ==\n" << std::endl;
-    test_log.close();  // Individual tests will re-open and append to the log.
-
     // Loop through the file and process each line.
     while (file_scan) {
       std::string line = ApplyVars( file_scan.Read() );
@@ -388,7 +385,7 @@ public:
       }
     }
 
-    PrintSummary();
+    PrintResults();
   }
 
   void Load(std::string filename) {
@@ -424,7 +421,10 @@ public:
   }
   
   void PrintSummary_HTML(std::ostream & out) {
-    out << "\n<hr>\n<h1>Summary</h1>\n\n"
+    out << "<h2>Final Score: <span style=\"color: blue\">"
+        << GetPercentEarned() << "%</span></h2>\n<br>\n" << std::endl;
+
+    out << "\n<h1>Summary</h1>\n\n"
         << "<table style=\"background-color:#3fc0FF;\" cellpadding=\"5px\" border=\"1px solid black\" cellspacing=\"0\">"
         << "<tr><th>Test Case<th>Status<th>Checks<th>Passed<th>Failed<th>Score</tr>\n";
 
@@ -441,10 +441,8 @@ public:
     }
       out << "<tr><th>" << "TOTAL"
           << "<td><td><td><td><td>" << CountEarnedPoints() << " / " << CountTotalPoints()
-          << "</tr>\n";
-
-    out << "</table>\n<h2>Final Score: <span style=\"color: blue\">"
-        << GetPercentEarned() << "%</span></h2>\n<br><br><br>\n" << std::endl;
+          << "</tr></table>\n"
+          << "\n<hr>";
   }
 
   void PrintSummary() {
@@ -458,6 +456,17 @@ public:
       }
       else if (output.HasPercent()) {
         output.GetFile() << GetPercentEarned() << "%" << std::endl;
+      }
+    }
+  }
+
+  void PrintResults() {
+    PrintSummary();
+
+    for (const auto & test : tests) {
+      // And print results to the output files...
+      for (auto & output : outputs) {
+        test.PrintResult(output);
       }
     }
   }
