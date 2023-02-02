@@ -14,6 +14,7 @@
 #include <string>
 
 #include "emp/base/notify.hpp"
+#include "emp/bits/BitVector.hpp"
 
 using string_block_t = emp::vector<std::string>;
 
@@ -58,18 +59,19 @@ public:
   bool HasComp() const { return comparator.size(); }
 };
 
-struct CheckInfo {
+class CheckInfo {
+private:
   CheckString test;            // The test string associated with this check.
   std::string location;        // Position in the file where this check is located.
   size_t id;                   // Unique ID for this check.
   string_block_t error_msgs;   // Extra arguments from check to use in error messages.
 
-  std::string lhs_value = "";  // Resulting value on left (e.g., "20")
-  std::string rhs_value = "";  // Resulting value on right (e.g., "21", if rhs is "x+5" and x=16)
-  bool passed = false;         // Was this check successful?
-  bool resolved = false;       // Are we done performing this check?
-  std::string error_out;       // Message from test runner for students.
+  emp::vector<std::string> lhs_value;  // Resulting value on left (e.g., "20")
+  emp::vector<std::string> rhs_value;  // Resulting value on right (e.g., "21", if rhs is "x+5" and x=16)
+  emp::BitVector passed = false;         // Was this check successful?
+  emp::vector<std::string> error_out;       // Message from test runner for students.
 
+public:
   CheckInfo(const std::string & check_body, std::string _location, size_t _id)
     : location(_location), id(_id)
   {
@@ -81,6 +83,15 @@ struct CheckInfo {
     error_msgs.erase(error_msgs.begin());
   }
   CheckInfo(const CheckInfo &) = default;
+
+  size_t GetID() const { return id; }
+  bool Passed() const { return passed.All(); }
+  bool PassedAny() const { return passed.Any(); }
+
+  void PushResult(bool success) { passed.push_back(success); }
+  void PushLHSValue(const std::string in_value) { lhs_value.push_back(in_value); }
+  void PushRHSValue(const std::string in_value) { rhs_value.push_back(in_value); }
+  void PushErrorMsg(const std::string in_value) { error_out.push_back(in_value); }
 
   std::string ToCPP() const {
     std::stringstream out;
@@ -118,12 +129,19 @@ struct CheckInfo {
   }
 
   void PrintResults(OutputInfo & output) const {
+    // Loop through all call instances.
+    for (size_t i = 0; i < passed.size(); ++i) {
+      if (passed[i] && !output.HasPassedDetails()) continue; // No results printed for passed checks?
+      PrintResults(output, i);
+    }
+  }
+
+  void PrintResults(OutputInfo & output, size_t call_id) const {
     std::ostream & out = output.GetFile();
-    if (passed && !output.HasPassedDetails()) return; // No results printed for passed checks.
 
     std::string color = "green";
     std::string message = "Passed!";
-    if (!passed) { color = "red"; message = "Failed."; }
+    if (!passed[call_id]) { color = "red"; message = "Failed."; }
 
     if (output.IsHTML()) {
       // Show the test code.
@@ -131,32 +149,32 @@ struct CheckInfo {
           << "<p>Result: <span style=\"color: " << color << "\"><b>"
           << message << "</b></span><br>\n";
 
-      if (error_out.size()) {
-        out << "Error Message: " << error_out << "<br>\n";
+      if (error_out[call_id].size()) {
+        out << "Error Message: " << error_out[call_id] << "<br>\n";
       }
 
       // If there was a comparison, show results on both sides of it.
       if (test.HasComp()) {
         out << "<table><tr><td>Left side:<td><code>" << test.GetLHS()
-            << "</code><td>&nbsp;&nbsp;==><td><code>" << lhs_value << "</code></tr>\n"
+            << "</code><td>&nbsp;&nbsp;==><td><code>" << lhs_value[call_id] << "</code></tr>\n"
             << "<tr><td>Right side:<td><code>" << test.GetRHS() << "</code><td>&nbsp;&nbsp;==><td><code>"
-            << rhs_value << "</code></tr></table><br>\n";
+            << rhs_value[call_id] << "</code></tr></table><br>\n";
       }
     } else {
       // Show the test code.
       out << "\nTest: " << test.ToString() << "\n\n";
       out << "Result: " << message << "\n";
-      if (error_out.size()) {
-        out << "Error Message: " << error_out << "\n";
+      if (error_out[call_id].size()) {
+        out << "Error Message: " << error_out[call_id] << "\n";
       }
 
       // If there was a comparison, show results on both sides of it.
       if (test.HasComp()) {
         size_t max_width = std::max(test.GetLHS().size(), test.GetRHS().size());
         out << "Left side : " << emp::pad_back(test.GetLHS(), ' ', max_width)
-                              << "  ==>  " << lhs_value << "\n"
+                              << "  ==>  " << lhs_value[call_id] << "\n"
             << "Right side: " << emp::pad_back(test.GetRHS(), ' ', max_width)
-                              << "  ==>  " << rhs_value << "\n";
+                              << "  ==>  " << rhs_value[call_id] << "\n";
       }
 
     }
