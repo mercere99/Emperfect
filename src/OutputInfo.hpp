@@ -31,6 +31,7 @@ private:
   std::string filename;  // If filename is empty, use std::cout
   Detail detail = Detail::STUDENT;
   std::string type = "";
+  std::string link_to = ""; // Should links in this file go to another (typically more detailed) file?
 
   emp::Ptr<std::ostream> file_ptr = nullptr;
 
@@ -53,11 +54,14 @@ public:
   bool HasHiddenDetails() const { return detail >= TEACHER; } // Print code for hidden failed cases?
   bool HasPassedDetails() const { return detail >= FULL; }    // Print code for passed cases?
   bool HasDebug() const { return detail >= DEBUG; }           // Print additional debug data?
+  
+  bool HasLink() const { return link_to.size(); }             // Send links to a different file?
 
   std::ostream & GetFile() {
     if (file_ptr.IsNull()) { InitFile(); }
     return *file_ptr;
   }
+  const std::string & GetLinkFile() const { return link_to; }
 
   void InitFile() {
     if (filename.size()) file_ptr = emp::NewPtr<std::ofstream>(filename);
@@ -108,6 +112,7 @@ public:
       type = "txt";
     }
   }
+  void SetLinkFile(const std::string & _in) { link_to = _in; }
 
   Detail NameToDetail(std::string level) {
     level = emp::to_lower(level);
