@@ -166,6 +166,7 @@ private:
 
       if (arg == "detail") output.SetDetail(value);
       else if (arg == "filename") output.SetFilename(value);
+      else if (arg == "link_to") output.SetLinkFile(value);
       else if (arg == "type") output.SetType(value);
       else {
         emp::notify::Error("Uknown :Output argument '", arg, "'.");
@@ -420,7 +421,11 @@ public:
     out << "\nFinal Score: " << GetPercentEarned() << std::endl;
   }
   
-  void PrintSummary_HTML(std::ostream & out) {
+  /// @brief Print out an HTML table summarizing results of each test.
+  /// @param out Which stream should results be printed to?
+  /// @param link_base Where should links go?
+  ///        "#" is local, "file.html#" links to file.html. Empty-> don't create links.
+  void PrintSummary_HTML(std::ostream & out, std::string link_base="#") {
     out << "<h2>Final Score: <span style=\"color: blue\">"
         << GetPercentEarned() << "%</span></h2>\n" << std::endl;
 
@@ -429,9 +434,13 @@ public:
 
     for (auto & test_case : tests) {
   //    out << "<tr>" 
-      out << "<tr onclick=\"window.location='#Test" << test_case.id << "';\">" 
 	// << "<td>" << test_case.id << ": <a href=\"#Test" << test_case.id << "\">" << test_case.name << "</a>"
-          << "<td>" << test_case.id << ": " << test_case.name
+      if (link_base == "") {
+        out << "<tr>";
+      } else {
+        out << "<tr onclick=\"window.location='" << link_base << "Test" << test_case.id << "';\">";
+      }
+      out << "<td>" << test_case.id << ": " << test_case.name
           << "<td>" << test_case.GetStatusString()
           << "<td>" << test_case.GetNumChecks()
           << "<td>" << test_case.CountPassed()
@@ -441,15 +450,24 @@ public:
     }
       out << "<tr><th>" << "TOTAL"
           << "<td><td><td><td><td>" << CountEarnedPoints() << " / " << CountTotalPoints()
-          << "</tr></table>\n"
-          << "<p>Click on a row above to jump to the test case, or scroll down below for more details.\n"
-          << "<hr>";
+          << "</tr></table>\n";
+      if (link_base != "") {
+        out << "<p>Click on a row above to jump to the test case";
+        if (link_base == "#") out << " or scroll down for more details";
+        out << ".<br>\n";
+      }
+      out << "<hr>";
   }
 
   void PrintSummary() {
     for (auto & output : outputs) {
       if (output.HasSummary()) {
-        if (output.IsHTML()) PrintSummary_HTML(output.GetFile());
+        if (output.IsHTML()) {
+          std::string link_base = "";
+          if (output.HasLink()) link_base = output.GetLinkFile() + "#";
+          if (output.HasResults()) link_base = "#";
+          PrintSummary_HTML(output.GetFile(), link_base);
+        }
         else PrintSummary_Text(output.GetFile());
       }
       else if (output.HasScore()) {
