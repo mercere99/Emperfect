@@ -52,6 +52,7 @@ The `:Output` command specifies which files to produce or what to print on the c
 | ---------- | ----------------------------------------------------------- | ------------------------- |
 | `detail`   | Level of information to provide about test case results.    | `detail="summary"`        |
 | `filename` | Name of output file; default: send results to standard out. | `filename="results.html"` |
+| `link_to`  | Name of file to link to (usually with more details.)        | `link_to="details.html"`  |
 | `type`     | Output format ("txt" or "html")                             | `type="html"`             |
 
 Standard out defaults to "txt"; files default to file extension.  The `detail` levels that can be selected (from least to most informative) are:
