@@ -203,11 +203,13 @@ public:
   void PrintCode(OutputInfo & output) const {
     std::ostream & out = output.GetFile();
 
-    if (code.size() == 0) {
-      out << "No test sourcecode.\n";
-      if (output.IsHTML()) out << "<br><br>";
-      return;
-    }
+    // If there is no code, don't worry about printing it.
+    if (code.size() == 0) return;
+    // {
+    //   out << "No test sourcecode.\n";
+    //   if (output.IsHTML()) out << "<br><br>";
+    //   return;
+    // }
 
     if (output.IsHTML()) {
       out << "Sourcecode for Test:<br><br>\n";
@@ -242,6 +244,18 @@ public:
     } else {
       out << "Compile Results for Test:\n\n";
       for (auto line : file) out << line << "\n";
+    }
+  }
+
+  void PrintArgs(OutputInfo & output) const {
+    if (args.size() == 0) return; // No arguments to print.
+
+    std::ostream & out = output.GetFile();
+    out << "Command Line Arguments: ";
+    if (output.IsHTML()) {
+      out << "<code>" << args << "</code><br>\n";
+    } else {
+      out << args << "\n";
     }
   }
 
@@ -367,7 +381,7 @@ public:
     if (print_checks) PrintResult_Checks(output);
     if (print_code) PrintCode(output);
     if (print_compile) PrintCompileResults(output);
-    if (print_input) PrintInputFile(output);
+    if (print_input) { PrintArgs(output); PrintInputFile(output); }
     if (print_diff) PrintOutputDiff(output);
   }
 
