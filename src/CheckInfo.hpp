@@ -85,7 +85,7 @@ public:
   CheckInfo(const CheckInfo &) = default;
 
   size_t GetID() const { return id; }
-  bool Passed() const { return passed.All(); }
+  bool Passed() const { return passed.size() && passed.All(); }
   bool PassedAny() const { return passed.Any(); }
 
   void PushResult(bool success) { passed.push_back(success); }
