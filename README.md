@@ -74,17 +74,18 @@ Each TestCase starts with a `:Testcase` at the beginning of a line, followed by 
 
 | Setting       | Description                                              | Usage                     |
 | ------------- | -------------------------------------------------------- | ------------------------- |
-| `name`        | Name to use when reporting on test case.                 | `name="1: Test Square() function"` |
+| `name`        | Name to use when reporting on test case.                 | `name="Test Square() function"` |
 | `args`        | Command line arguments to provide. (default=none)        | `args="1 2 3"`            | 
-| `run_main`    | Should student's main() function be run? (default=true)  | `run_main=true`           |
-| `points`      | Number of points a test case is worth. (default=10.0)    | `points=30.0`             |
-| `input`       | Name of file to use as standard input (default=none)     | `input="input01.txt"`     |
-| `output`      | Name of file to record generated output (default='_emp_out.txt') | `input="_emp_out.txt"` |
-| `expect`      | Expected output. If provided, must match (default=none)  | `expect="output01.txt"`   |
 | `code_file`   | If provided, use file instead of local code that follows | `code_file="test01.cpp`   |
+| `expect`      | Expected output. If provided, must match (default=none)  | `expect="output01.txt"`   |
 | `hidden`      | Should this test case be hidden? (default=false)         | `hidden=true`             |
+| `input`       | Name of file to use as standard input (default=none)     | `input="input01.txt"`     |
 | `match_case`  | Must output matches have same case? (default=true)       | `match_case=false`        |
 | `match_space` | Must output matches have same whitespace? (default=true) | `match_space=false`       |
+| `output`      | Name of file to record generated output (default='_emp_out.txt') | `input="_emp_out.txt"` |
+| `points`      | Number of points a test case is worth. (default=10.0)    | `points=30.0`             |
+| `run_main`    | Should student's main() function be run? (default=true)  | `run_main=true`           |
+| `timeout`     | Number of seconds that a test should go for (default=5)  | `timeout=10`              |
 
 Example:
 
