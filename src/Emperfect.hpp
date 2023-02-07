@@ -7,16 +7,15 @@
  *  @brief Main driver for Emperfect unit testing
  * 
  *  URGENT
- *  @todo Allow CHECK in loops?
  * 
  *  SOON
  *  @todo Add a CHECK_TYPE() version of check
  *  @todo Allow CHECK() in headers.
  *  @todo Fix line numbers in output to students.
  *  @todo Make shorter compile output still scroll horizontally if needed.
+ *  @todo Do a better job with scrolling text.  Maybe make wrap horizontally (as on the command line)?
  *  @todo REQUIRE specific function signatures
  *  @todo Generate a full working code file for students to run the test cases locally.
- *  @todo Show the student any command-line arguments used.
  *  @todo make var_map["DIR"] work properly (i.e., case insensitive)
  *  @todo Figure out why quotes aren't removed from :Init dir=".emperfect"
  * 
@@ -28,9 +27,8 @@
  *  @todo Collect times for how long test cases actually took.
  *  @todo Add a "contact your instructors" error message for things that shouldn't break.
  *  @todo Web interface for building a config file.
- *  @todo Do a better job with scrolling text.  Maybe make wrap horizontally (as on the command line)?
  *  @todo Allow a testcase to provide more dynamic feedback based on student errors.
- *  @todo Add a way to "check near", perhaps a =~ operator in checks or some such?
+ *  @todo Add a way to "check near", perhaps a ~= operator in checks or some such?
  */
 
 #ifndef EMPERFECT_EMPERFECT_HPP
