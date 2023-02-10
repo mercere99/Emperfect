@@ -21,6 +21,7 @@ enum class TestStatus {
   FAILED_COMPILE, // Compilation failed.
   FAILED_CHECK,   // Failed one of the CHECK statements.
   FAILED_TIME,    // Took too long and had a timeout.
+  FAILED_RUN,     // Had an error output during run.
   FAILED_OUTPUT   // Output didn't match expected.
 };
 
@@ -90,6 +91,7 @@ public:
     if (compile_exit_code) return TestStatus::FAILED_COMPILE;
     if (CountPassed() != checks.size()) return TestStatus::FAILED_CHECK;
     if (hit_timeout) return TestStatus::FAILED_TIME;
+    if (run_exit_code) return TestStatus::FAILED_RUN;
     if (!output_match) return TestStatus::FAILED_OUTPUT;
     return TestStatus::PASSED;
   }
@@ -99,8 +101,9 @@ public:
     case TestStatus::PASSED: return "Passing";
     case TestStatus::FAILED_CHECK: return "Checks Failing";
     case TestStatus::FAILED_COMPILE: return "Compilation Error";
-    case TestStatus::FAILED_OUTPUT: return "Incorrect Output";
     case TestStatus::FAILED_TIME: return "Timed Out";
+    case TestStatus::FAILED_RUN: return "Error During Run";
+    case TestStatus::FAILED_OUTPUT: return "Incorrect Output";
     }
     return "Unknown";
   }
@@ -120,38 +123,15 @@ public:
 
   // Take an input line and convert any "CHECK" macro into full analysis and output code.
   std::string ProcessChecks() {
-    std::stringstream out;
-
-    // We need to identify the comparator and divide up arguments in CHECK.
-    size_t check_pos = processed_code.find("CHECK(");
-    size_t check_end = 0;
-    size_t check_id = 0;
-    size_t line_num = 0;
-    std::string code_segment;
-    while (check_pos != std::string::npos) {
-      // Output everything from the end of the last check to the beginning of this one.
-      code_segment = processed_code.substr(check_end, check_pos-check_end);
-      line_num += emp::count(code_segment, '\n');
-      out << code_segment;
-
-      // Isolate this check and divide it into arguments.
-      check_end = emp::find_paren_match(processed_code, check_pos+5);
-      const std::string check_body = processed_code.substr(check_pos+6, check_end-check_pos-6);
-      check_end += 2;  // Advance the end past the ");" at the end of the check.
-
-      std::string location = emp::to_string("Testcase #", id, ", Line", line_num, " (check ", check_id, ")");
-      checks.emplace_back(check_body, location, check_id);
-      out << checks.back().ToCPP();
-
-      // Find the next check and loop starting from the end of this one.
-      check_id++;
-      check_pos = processed_code.find("CHECK(", check_end);
-    }
-
-    // Grab the rest of the processed_code and output the processed string.
-    out << processed_code.substr(check_end);
-    return out.str();
+    return emp::replace_macro(processed_code, "CHECK",
+      [this](const std::string & check_body, size_t line_num, size_t check_id){
+        std::string location =
+          emp::to_string("Testcase #", id, ", Line", line_num, " (check ", check_id, ")");
+        checks.emplace_back(check_body, location, check_id);
+        return checks.back().ToCPP();
+      });
   }
+
   
   // Generate a C++ file for internal testing with the provided header.
   void GenerateTestCPP(const std::string & header) {
@@ -247,6 +227,23 @@ public:
     }
   }
 
+  void PrintErrorResults(OutputInfo & output) const {
+    std::ostream & out = output.GetFile();
+
+    emp::File error_file(error_filename);
+
+    if (output.IsHTML()) {
+      out << "<table>\n"
+          << "<tr><th>Run-time Error Messages:</tr>\n"
+          << "<tr><td valign=\"top\" style=\"background-color:LightGray\"><pre>\n";
+      for (auto line : error_file) out << line << "\n";
+      out << "</pre></tr></table>\n";
+    } else {
+      out << "========== RUN-TIME ERRORS ==========\n";
+      for (auto line : error_file) out << line << "\n";
+    }
+  }
+
   void PrintArgs(OutputInfo & output) const {
     if (args.size() == 0) return; // No arguments to print.
 
@@ -339,10 +336,12 @@ public:
         color = "Red"; message = "FAILED due to unsuccessful check."; break;
       case TestStatus::FAILED_COMPILE:
         color = "DarkRed"; message = "FAILED during compilation."; break;
-      case TestStatus::FAILED_OUTPUT:
-        color = "OrangeRed"; message = "FAILED due to mis-matched output."; break;
       case TestStatus::FAILED_TIME:
         color = "Purple"; message = "FAILED due to timeout."; break;
+      case TestStatus::FAILED_RUN:
+        color = "OrangeRed"; message = "FAILED due to run-time error."; break;
+      case TestStatus::FAILED_OUTPUT:
+        color = "OrangeRed"; message = "FAILED due to mis-matched output."; break;
     }
 
     if (output.IsHTML()) {
@@ -375,12 +374,14 @@ public:
     bool print_checks = GetStatus() == TestStatus::FAILED_CHECK || output.HasPassedDetails();
     bool print_code = Failed() || output.HasPassedDetails();
     bool print_compile = GetStatus() == TestStatus::FAILED_COMPILE;
+    bool print_error = GetStatus() == TestStatus::FAILED_RUN;
     bool print_input = GetStatus() == TestStatus::FAILED_OUTPUT || output.HasPassedDetails();
     bool print_diff = GetStatus() == TestStatus::FAILED_OUTPUT;
 
     if (print_checks) PrintResult_Checks(output);
     if (print_code) PrintCode(output);
     if (print_compile) PrintCompileResults(output);
+    if (print_error) PrintErrorResults(output);
     if (print_input) { PrintArgs(output); PrintInputFile(output); }
     if (print_diff) PrintOutputDiff(output);
   }
