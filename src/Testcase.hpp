@@ -121,15 +121,27 @@ public:
 
   double EarnedPoints() const { return Passed() ? points : 0.0; }
 
-  // Take an input line and convert any "CHECK" macro into full analysis and output code.
+  // Convert all CHECK macros.
   std::string ProcessChecks() {
-    return emp::replace_macro(processed_code, "CHECK",
+    // Take an input line and convert "CHECK" macro into full analysis and output code.
+    std::string out_code = emp::replace_macro(processed_code, "CHECK",
       [this](const std::string & check_body, size_t line_num, size_t check_id){
         std::string location =
           emp::to_string("Testcase #", id, ", Line", line_num, " (check ", check_id, ")");
-        checks.emplace_back(check_body, location, check_id);
+        checks.emplace_back(check_body, location, check_id, CheckType::ASSERT);
         return checks.back().ToCPP();
       });
+
+    // Take an input line and convert "CHECK" macro into full analysis and output code.
+    out_code = emp::replace_macro(out_code, "CHECK_TYPE",
+      [this](const std::string & check_body, size_t line_num, size_t check_id){
+        std::string location =
+          emp::to_string("Testcase #", id, ", Line", line_num, " (check ", check_id, ")");
+        checks.emplace_back(check_body, location, check_id, CheckType::TYPE_COMPARE);
+        return checks.back().ToCPP();
+      });
+
+    return out_code;
   }
 
   
@@ -153,6 +165,7 @@ public:
       << "#include <fstream>\n"
       << "#include <iostream>\n"
       << "#include <sstream>\n"
+      << "#include <type_traits>\n"
       << "\n"
       << header << "\n"
       << "void _emperfect_main() {\n"
