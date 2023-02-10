@@ -46,6 +46,8 @@ public:
       comparator = test.substr(comp_pos, comp_size);
       lhs = test.substr(0, comp_pos);
       rhs = test.substr(comp_pos+comp_size);
+      emp::trim_whitespace(lhs);
+      emp::trim_whitespace(rhs);
     }
     else {
       lhs = test; // Whole test is on the left-hand-side.
@@ -117,9 +119,9 @@ public:
   bool PassedAny() const { return passed.Any(); }
 
   void PushResult(bool success) { passed.push_back(success); }
-  void PushLHSValue(const std::string in_value) { lhs_value.push_back(in_value); }
-  void PushRHSValue(const std::string in_value) { rhs_value.push_back(in_value); }
-  void PushErrorMsg(const std::string in_value) { error_out.push_back(in_value); }
+  void PushLHSValue(std::string _in) { emp::trim_whitespace(_in); lhs_value.push_back(_in); }
+  void PushRHSValue(std::string _in) { emp::trim_whitespace(_in); rhs_value.push_back(_in); }
+  void PushErrorMsg(std::string _in) { emp::trim_whitespace(_in); error_out.push_back(_in); }
 
   void ToCPP_CHECK(std::ostream & out) const {
     // Generate code for this test.
@@ -141,8 +143,8 @@ public:
         << "  {\n"
         << "    using _emperfect_type1 = decltype(" << test.GetLHS() << ");\n"
         << "    using _emperfect_type2 = " << test.GetRHS() << ";\n"
-        << "    std::string _emperfect_lhs = typeid(_emperfect_type1).name();"
-        << "    std::string _emperfect_rhs = " << emp::to_literal(test.GetRHS()) << ";"
+        << "    std::string _emperfect_lhs = _EMP_GetTypeName<_emperfect_type1>();\n"
+        << "    std::string _emperfect_rhs = " << emp::to_literal(test.GetRHS()) << ";\n"
         << "    constexpr bool _emperfect_success = std::is_same<_emperfect_type1, _emperfect_type2>();\n";
   }
 
