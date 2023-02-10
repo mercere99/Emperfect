@@ -15,6 +15,7 @@
 
 #include "emp/base/notify.hpp"
 #include "emp/bits/BitVector.hpp"
+#include "emp/datastructs/vector_utils.hpp"
 
 using string_block_t = emp::vector<std::string>;
 
@@ -27,7 +28,7 @@ private:
   std::string rhs = "";
 
 public:
-  void SetFrom(const std::string & _test, std::string location) {
+  void SetCheck(const std::string & _test, std::string location) {
     test = _test;
     emp::notify::TestError(emp::find_any_of(test, 0, "&&", "||") != std::string::npos,
       location, ": Unit test checks do not allow \"&&\" or \"||\".");
@@ -51,6 +52,14 @@ public:
     }
   }
 
+  void SetCheckType(const std::string & expression, const std::string & type, std::string location) {
+    (void) location;
+    test = emp::to_string("TYPE(", expression, ") == ", type);
+    lhs = expression;
+    rhs = type;
+    comparator = "TYPE";
+  }
+
   const std::string & ToString() const { return test; }
   std::string ToLiteral() const { return emp::to_literal(test); }
   std::string GetLHS() const { return lhs; }
@@ -59,11 +68,19 @@ public:
   bool HasComp() const { return comparator.size(); }
 };
 
+enum class CheckType {
+  UNKNOWN = 0,
+  ASSERT,
+  TYPE_COMPARE
+};
+
 class CheckInfo {
 private:
+
   CheckString test;            // The test string associated with this check.
   std::string location;        // Position in the file where this check is located.
   size_t id;                   // Unique ID for this check.
+  CheckType type;              // What type of check are we doing?
   string_block_t error_msgs;   // Extra arguments from check to use in error messages.
 
   emp::vector<std::string> lhs_value;  // Resulting value on left (e.g., "20")
@@ -72,15 +89,26 @@ private:
   emp::vector<std::string> error_out;       // Message from test runner for students.
 
 public:
-  CheckInfo(const std::string & check_body, std::string _location, size_t _id)
-    : location(_location), id(_id)
+  CheckInfo(const std::string & check_body, std::string _location, size_t _id, CheckType _type)
+    : location(_location), id(_id), type(_type)
   {
+    emp_assert(type != CheckType::UNKNOWN);
+
     error_msgs = emp::slice(check_body, ',', 256, true, true, true);
 
-    // Split off the test (the first argument) and make sure it's valid.
-    emp::notify::TestError(error_msgs.size() == 0, location, ": CHECK cannot be empty.");
-    test.SetFrom(error_msgs[0], location);
-    error_msgs.erase(error_msgs.begin());
+    if (type == CheckType::ASSERT) {
+      // Split off the test (the first argument) and make sure it's valid.
+      emp::notify::TestError(error_msgs.size() == 0, location, ": CHECK cannot be empty.");
+      test.SetCheck(emp::PopFront(error_msgs), location);
+    }
+    else if (type == CheckType::TYPE_COMPARE) {
+      // The first argument is the expression, the second is the type to use.
+      emp::notify::TestError(error_msgs.size() < 2, location, ": CHECK_TYPE needs at least two args.");
+      std::string lhs = emp::PopFront(error_msgs);
+      std::string rhs = emp::PopFront(error_msgs);
+      test.SetCheckType(lhs, rhs, location);
+    }
+
   }
   CheckInfo(const CheckInfo &) = default;
 
@@ -93,9 +121,7 @@ public:
   void PushRHSValue(const std::string in_value) { rhs_value.push_back(in_value); }
   void PushErrorMsg(const std::string in_value) { error_out.push_back(in_value); }
 
-  std::string ToCPP() const {
-    std::stringstream out;
-
+  void ToCPP_CHECK(std::ostream & out) const {
     // Generate code for this test.
     out << "  // CHECK #" << id << "\n"
         << "  {\n"
@@ -107,6 +133,27 @@ public:
       out << "    auto _emperfect_rhs = \"N/A\";\n"
           << "    bool _emperfect_success = _emperfect_lhs;\n";
     }
+  }
+
+  void ToCPP_CHECK_TYPE(std::ostream & out) const {
+    // Generate code for this test.
+    out << "  // CHECK #" << id << " (CHECK_TYPE)\n"
+        << "  {\n"
+        << "    using _emperfect_type1 = decltype(" << test.GetLHS() << ");\n"
+        << "    using _emperfect_type2 = " << test.GetRHS() << ";\n"
+        << "    std::string _emperfect_lhs = typeid(_emperfect_type1).name();"
+        << "    std::string _emperfect_rhs = " << emp::to_literal(test.GetRHS()) << ";"
+        << "    constexpr bool _emperfect_success = std::is_same<_emperfect_type1, _emperfect_type2>();\n";
+  }
+
+  std::string ToCPP() const {
+    std::stringstream out;
+
+    // Generate the test
+    if (type == CheckType::ASSERT) ToCPP_CHECK(out);
+    else if (type == CheckType::TYPE_COMPARE) ToCPP_CHECK_TYPE(out);
+
+    // Save the results.
     out << "    _emperfect_passed &= _emperfect_success;\n"
         << "    std::string _emperfect_msg = \"Success!\";\n"
         << "    if (!_emperfect_success) {\n"
