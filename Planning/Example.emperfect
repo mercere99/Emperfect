@@ -91,3 +91,14 @@ double Sum(double x, double y) { return x + y; }
   for (int i = 10; i >= 0; i--) {
     std::cout << (x/i) << std::endl;
   }
+
+:TestCase name="Test type checks", timeout=1, points=5
+  int x = 1000;
+  std::string y = "Test string";
+  double z = 1.0;
+  CHECK_TYPE(x, int);
+  CHECK_TYPE(y, std::string);
+  CHECK_TYPE(y[2], char);
+  CHECK_TYPE(z, double);
+  CHECK_TYPE(z, char);
+  
