@@ -36,8 +36,12 @@ private:
   emp::Ptr<std::ostream> file_ptr = nullptr;
 
 public:
+  OutputInfo() = default;
+  OutputInfo(const OutputInfo &) = default;
   ~OutputInfo() {
-    if (filename.size()) file_ptr.Delete();
+    if (filename.size() && file_ptr) {
+      file_ptr.Delete();
+    }
   }
 
   const std::string & GetFilename() const { return filename; }
@@ -54,7 +58,7 @@ public:
   bool HasHiddenDetails() const { return detail >= TEACHER; } // Print code for hidden failed cases?
   bool HasPassedDetails() const { return detail >= FULL; }    // Print code for passed cases?
   bool HasDebug() const { return detail >= DEBUG; }           // Print additional debug data?
-  
+
   bool HasLink() const { return link_to.size(); }             // Send links to a different file?
 
   std::ostream & GetFile() {
@@ -64,7 +68,10 @@ public:
   const std::string & GetLinkFile() const { return link_to; }
 
   void InitFile() {
-    if (filename.size()) file_ptr = emp::NewPtr<std::ofstream>(filename);
+    if (filename.size()) {
+      file_ptr = emp::NewPtr<std::ofstream>(filename);
+      emp::notify::TestError(!file_ptr, "Unable to open file '", filename, "'.");
+    }
     else {
       if (type.empty()) type = "txt";
       file_ptr = &std::cout;
