@@ -27,6 +27,11 @@
 
 double SquareRoot(double x) { return x / ${test_var}; }
 double Sum(double x, double y) { return x + y; }
+char PopChar(std::string & in) {
+  char out = in.back();
+  in.resize(in.size() - 1);
+  return out;
+}
 
 /// Set up the output that should be generated.
 /// (Multiple :Output commands are cumulative, but only track subsequent tests.)
@@ -53,3 +58,8 @@ double Sum(double x, double y) { return x + y; }
   CHECK_TYPE(Sum, int());
   CHECK_TYPE(SquareRoot, char(const std::string &));
   
+:TestCase name="Type check with ref", timeout=1, points=5
+  CHECK_TYPE(PopChar, double(double));
+  CHECK_TYPE(PopChar, char(std::string));
+  CHECK_TYPE(PopChar, char(std::string &));
+  CHECK_TYPE(PopChar, char(const std::string &));
