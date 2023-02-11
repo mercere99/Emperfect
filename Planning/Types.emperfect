@@ -1,0 +1,55 @@
+/// Some important, built-in variables (see README.md for full list).
+///  ${dir} : Directory where all Emperfect files should go.
+///     NOTE: This directory will be cleared before each test run, so be careful when setting it.
+
+/// Initialize variable settings (such as those listed above); must come first.
+:Init dir=.emperfect
+
+/// Setup how compilation should be performed
+/// (Any new :Compile commands below would replace this one for subsequent tests.)
+/// The variables below can be used:
+///   ${#test} : The number of the test currently being run.
+///   ${cpp} : Generated code file for the current test
+///   ${exe} : Executable created for the current test
+///   ${out} : File to write any generated standard output.
+///   ${compile} : File to write any compilation warnings or errors.
+/// Any of these variables can also be overridden in the arguments for :Testcase
+:Compile
+  g++ -std=c++20 -Wall -Wextra ${cpp} -o ${exe} 2> ${compile}
+
+/// Provide a header that should be included at the beginning of all tests.
+/// Note: Settings provided here will be available thereafter.
+///       After this example :Header, ${test_var} can be used in any test as 2.0.
+/// (Any new :Header commands below would replace this one for subsequent tests.)
+:Header test_var=2.0
+#include <iostream>
+#include "../main.cpp"
+
+double SquareRoot(double x) { return x / ${test_var}; }
+double Sum(double x, double y) { return x + y; }
+
+/// Set up the output that should be generated.
+/// (Multiple :Output commands are cumulative, but only track subsequent tests.)
+:Output detail="student"                                       /// No filename -> Standard out
+:Output filename="results.html", detail="student"              /// Limited HTML results for students
+:Output filename="private/teacher-only.html", detail="teacher" /// Full HTML results for instructors
+:Output filename="grade.txt", detail="percent"                 /// Record total grade as % of points
+
+:TestCase name="Test type checks", timeout=1, points=5
+  int x = 1000;
+  std::string y = "Test string";
+  double z = 1.0;
+  CHECK_TYPE(x, int);
+  CHECK_TYPE(y, std::string);
+  CHECK_TYPE(y[2], char);
+  CHECK_TYPE(z, double);
+  CHECK_TYPE(z, char);
+
+:TestCase name="Test type checks", timeout=1, points=5
+  CHECK_TYPE(SquareRoot, double(double));
+  CHECK_TYPE(Sum, double(double,double));
+  CHECK_TYPE(Sum, double(double));
+  CHECK_TYPE(SquareRoot, double(double,double));
+  CHECK_TYPE(Sum, int());
+  CHECK_TYPE(SquareRoot, char(const std::string &));
+  
