@@ -87,8 +87,8 @@ private:
 
   emp::vector<std::string> lhs_value;  // Resulting value on left (e.g., "20")
   emp::vector<std::string> rhs_value;  // Resulting value on right (e.g., "21", if rhs is "x+5" and x=16)
-  emp::BitVector passed = false;         // Was this check successful?
-  emp::vector<std::string> error_out;       // Message from test runner for students.
+  emp::BitVector passed = false;       // Was this check successful?
+  emp::vector<std::string> error_out;  // Message from test runner for students.
 
 public:
   CheckInfo(const std::string & check_body, std::string _location, size_t _id, CheckType _type)
@@ -145,7 +145,7 @@ public:
         << "    using _emperfect_type2 = " << test.GetRHS() << ";\n"
         << "    std::string _emperfect_lhs = _EMP_GetTypeName<_emperfect_type1>();\n"
         << "    std::string _emperfect_rhs = " << emp::to_literal(test.GetRHS()) << ";\n"
-        << "    constexpr bool _emperfect_success = std::is_same<_emperfect_type1, _emperfect_type2>();\n";
+        << "    bool _emperfect_success = std::is_same<_emperfect_type1, _emperfect_type2>();\n";
   }
 
   std::string ToCPP() const {
