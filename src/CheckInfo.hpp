@@ -168,8 +168,8 @@ public:
         << "    _emperfect_results << \":CHECK: " << id << "\\n\"\n"
         << "                       << \":TEST: \" << " << test.ToLiteral() << " << \"\\n\"\n"
         << "                       << \":RESULT: \" << _emperfect_success << \"\\n\"\n"
-        << "                       << \":LHS: \" << _emperfect_lhs << \"\\n\"\n"
-        << "                       << \":RHS: \" << _emperfect_rhs << \"\\n\"\n"
+        << "                       << \":LHS: \" << to_literal(_emperfect_lhs) << \"\\n\"\n"
+        << "                       << \":RHS: \" << to_literal(_emperfect_rhs) << \"\\n\"\n"
         << "                       << \":MSG: \" << _emperfect_msg << \"\\n\\n\";\n"
         << "    _emperfect_check_id++;\n"
         << "  }\n";
