@@ -167,7 +167,7 @@ private:
       else if (arg == "link_to") output.SetLinkFile(value);
       else if (arg == "type") output.SetType(value);
       else {
-        emp::notify::Error("Uknown :Output argument '", arg, "'.");
+        emp::notify::Error("Unknown argument for :Output, '", arg, "'.");
       }
     }
   }
