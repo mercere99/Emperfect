@@ -78,10 +78,7 @@ private:
   }
 
   // Generate and print a diff between two files to an output stream.
-  void PrintDiffHtml(std::ostream & output, const emp::File &output_file, const emp::File &expect_file) const {
-    std::stringstream out_ss, expect_ss;
-    const_cast<emp::File &>(output_file).Write(out_ss); // const_cast is safe because we're not changing the file, and Write only works on non-const files.
-    const_cast<emp::File &>(expect_file).Write(expect_ss);
+  void PrintDiffHtml(std::ostream & output, const std::stringstream &out_ss, const std::stringstream &expect_ss) const {
     std::string out_str = out_ss.str();
     std::string expect_str = expect_ss.str();
     dtl::Diff<char, std::string> d(out_str, expect_str);
@@ -450,6 +447,9 @@ public:
     std::ostream & out = output.GetFile();
     emp::File output_file(output_filename);
     emp::File expect_file(expect_filename);
+    std::stringstream out_ss, exp_ss;
+    output_file.Write(out_ss);
+    expect_file.Write(exp_ss);
     if (output.IsHTML()) {
       out << "<table>\n"
           << "<tr><th>Your Output<th> <th>Expected Output</tr>\n"
@@ -463,7 +463,7 @@ public:
         out << emp::MakeEscaped(line) << "\n";
       }
       out << "</pre></tr></table>\n";
-      PrintDiffHtml(out, output_file, expect_file); // Print a diff of the two files.
+      PrintDiffHtml(out, out_ss, exp_ss); // Print a diff of the two files.
     } else {
       out << "========== YOUR OUTPUT ==========\n";
       for (auto line : output_file) out << emp::MakeEscaped(line) << "\n";
