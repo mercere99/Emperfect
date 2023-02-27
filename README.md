@@ -7,7 +7,7 @@ A unit test framework geared toward a classroom setting.
  - Empirical library (expected in "empirical" directory by default)
  - DTL library (expected in "dtl" directory by default)
 
-To install the required libraries, run the following commands:
+To install the required libraries, run the following command from the root directory of this repository:
 ```bash
 git submodule update --init --recursive
 ```
