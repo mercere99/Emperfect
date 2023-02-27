@@ -1,7 +1,7 @@
 default: native
 
 # Identify all directory locations
-EMP_DIR   = ../Empirical
+EMP_DIR   = ./empirical
 
 TARGET := Emperfect
 
