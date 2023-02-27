@@ -14,7 +14,7 @@
 
 #include "emp/base/vector.hpp"
 #include "emp/tools/String.hpp"
-
+#include "dtl.hpp"
 #include "CheckInfo.hpp"
 
 enum class TestStatus {
@@ -410,9 +410,18 @@ public:
     emp::File expect_file(expect_filename);
 
     if (output.IsHTML()) {
+      std::stringstream out_ss, expect_ss;
+      output_file.Write(out_ss);
+      expect_file.Write(expect_ss);
+      std::string out_str = out_ss.str();
+      std::string expect_str = expect_ss.str();
+      dtl::Diff<char, std::string> d(out_str, expect_str);
+      d.compose(); // Compute the diff, which gives us a sequence of edits.
+      auto ses = d.getSes().getSequence(); // Get the sequence of edits, in this case a vector<pair<char, eleminfo>>.
       out << "<table>\n"
           << "<tr><th>Your Output<th> <th>Expected Output</tr>\n"
           << "<tr><td valign=\"top\" style=\"background-color:LightGoldenrodYellow\"><pre>\n";
+
       for (auto line : output_file) {
         out << emp::MakeEscaped(line) << "\n";
       }
@@ -420,6 +429,28 @@ public:
           << "<td>&nbsp;<td valign=\"top\" style=\"background-color:LightBlue\"><pre>\n";
       for (auto line : expect_file) {
         out << emp::MakeEscaped(line) << "\n";
+      }
+      out << "</pre></tr></table>\n";
+      out << "<table>\n"
+          << "<tr><th>Diff</tr>\n"
+          << "<tr><td valign=\"top\" style=\"background-color:LightGray\"><pre>\n";
+      for (auto edit_it = ses.begin(); edit_it != ses.end(); ++edit_it) {
+        //bool is_space = edit_it->first == ' ';
+        if (edit_it->second.type == dtl::SES_ADD) {
+          out << "<span style=\"background-color:LightGreen\">";
+          out << edit_it->first;
+          out << "</span>";
+        } else if (edit_it->second.type == dtl::SES_DELETE) {
+          out << "<span style=\"background-color:LightCoral\">";
+          if (edit_it->first == '\0')
+            out << "[NULL]"; // Print a null character as [NULL] so it's not invisible.
+          else
+            out << edit_it->first;
+          out << "</span>";
+        } else {
+            out << edit_it->first;
+        }
+
       }
       out << "</pre></tr></table>\n";
     } else {
