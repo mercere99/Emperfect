@@ -434,21 +434,30 @@ public:
       out << "<table>\n"
           << "<tr><th>Diff</tr>\n"
           << "<tr><td valign=\"top\" style=\"background-color:LightGray\"><pre>\n";
+      bool span_open = false;
       for (auto edit_it = ses.begin(); edit_it != ses.end(); ++edit_it) {
-        //bool is_space = edit_it->first == ' ';
-        if (edit_it->second.type == dtl::SES_ADD) {
-          out << "<span style=\"background-color:LightGreen\">";
-          out << edit_it->first;
+        const auto &next = edit_it < ses.end() - 1 ? *(edit_it + 1) : *edit_it; // Get the next edit, or the current one if we're at the end.
+        if (!span_open) {
+          out << "<span style=\"background-color:";
+          span_open = true;
+          switch(edit_it->second.type) {
+            case dtl::SES_ADD:
+              out << "LightGreen\">";
+              break;
+            case dtl::SES_DELETE:
+              out << "LightCoral\">";
+              break;
+            default:
+              out << "LightGray\">"; // should never happen
+              break;
+          }
+        }
+        if (edit_it->first == '\0' && edit_it->second.type == dtl::SES_DELETE) out << "[NULL]";
+        else out << edit_it->first;
+
+        if (edit_it->second.type != next.second.type || *edit_it == next) { // if edit_it is the last edit of its type, or if we're at the end of the sequence.
           out << "</span>";
-        } else if (edit_it->second.type == dtl::SES_DELETE) {
-          out << "<span style=\"background-color:LightCoral\">";
-          if (edit_it->first == '\0')
-            out << "[NULL]"; // Print a null character as [NULL] so it's not invisible.
-          else
-            out << edit_it->first;
-          out << "</span>";
-        } else {
-            out << edit_it->first;
+          span_open = false;
         }
 
       }
