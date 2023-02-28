@@ -101,4 +101,12 @@ double Sum(double x, double y) { return x + y; }
   CHECK_TYPE(y[2], char);
   CHECK_TYPE(z, double);
   CHECK_TYPE(z, char);
+
+:TestCase name="Testing multi-line strings.", timeout=10, points=10
+  std::string val1 = "abc\ndef";
+  CHECK(val1 == "abc\ndef");
+
+:TestCase name="Testing multi-line strings with failue.", timeout=10, points=10
+  std::string val1 = "abc\ndef";
+  CHECK(val1 == "abc\ndefg");
   
