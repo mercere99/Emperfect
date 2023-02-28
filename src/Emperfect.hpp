@@ -304,7 +304,7 @@ private:
         test.score = emp::from_string<double>(line);
         std::cout << "Score = " << test.score << " of " << test.points << std::endl;
       }
-      else emp::notify::Error("Unknown field in result file: ", field);
+      else emp::notify::Error("Unknown field in result file '", test.result_filename, "': ", field);
     }
   }
 
