@@ -267,6 +267,7 @@ public:
       << "  out += \"\\\"\";\n"
       << "  return out;\n"
       << "}\n"
+      << "std::string to_literal(const char * str) { return to_literal(std::string(str)); }\n"
       << "template <typename T> const T & to_literal(const T & val) { return val; }\n"
       << "\n"
       << header << "\n"
