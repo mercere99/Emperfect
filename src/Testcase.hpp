@@ -13,6 +13,7 @@
 #define EMPERFECT_TESTCASE_HPP
 
 #include "emp/base/vector.hpp"
+#include "emp/tools/String.hpp"
 
 #include "CheckInfo.hpp"
 
@@ -253,6 +254,11 @@ public:
       << "  }\n"
       << "  return std::string(1,c);\n"
       << "}\n"
+      << "std::string to_esc(std::string str) {\n"
+      << "  std::string out;\n"
+      << "  for (char x : str) out += to_esc(x);\n"
+      << "  return out;\n"
+      << "}\n"
       << "\n"
       << "std::string to_literal(char c) {\n"
       << "  std::string out(\"\\\'\");\n"
@@ -263,7 +269,7 @@ public:
       << "std::string to_literal(std::string str) {\n"
       << "  while (str.size() && str[0]==' ') str.erase(0,1); // Erase leading whitespace\n"
       << "  std::string out(\"\\\"\");\n"
-      << "  for (char x : str) out += to_esc(x);\n"
+      << "  out += to_esc(str);\n"
       << "  out += \"\\\"\";\n"
       << "  return out;\n"
       << "}\n"
@@ -408,19 +414,19 @@ public:
           << "<tr><th>Your Output<th> <th>Expected Output</tr>\n"
           << "<tr><td valign=\"top\" style=\"background-color:LightGoldenrodYellow\"><pre>\n";
       for (auto line : output_file) {
-        out << line << "\n";
+        out << emp::MakeEscaped(line) << "\n";
       }
       out << "</pre>\n"
           << "<td>&nbsp;<td valign=\"top\" style=\"background-color:LightBlue\"><pre>\n";
       for (auto line : expect_file) {
-        out << line << "\n";
+        out << emp::MakeEscaped(line) << "\n";
       }
       out << "</pre></tr></table>\n";
     } else {
       out << "========== YOUR OUTPUT ==========\n";
-      for (auto line : output_file) out << line << "\n";
+      for (auto line : output_file) out << emp::MakeEscaped(line) << "\n";
       out << "\n========== EXPECTED OUTPUT ==========\n";
-      for (auto line : expect_file) out << line << "\n";
+      for (auto line : expect_file) out << emp::MakeEscaped(line) << "\n";
       out << "\n========== END OUTPUT ==========\n";
     }
   }
