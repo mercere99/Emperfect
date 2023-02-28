@@ -110,3 +110,5 @@ double Sum(double x, double y) { return x + y; }
   std::string val1 = "abc\ndef";
   CHECK(val1 == "abc\ndefg");
   
+:TestCase name="Testing escape chars in output.", timeout=10, points=10, expect="halfout.txt"
+  std::cout << "HELLO HALF WORLd!\t";
