@@ -1,0 +1,7 @@
+[submodule "empirical"]
+	path = empirical
+	url = https://github.com/devosoft/empirical
+	branch = MABE_devel
+[submodule "dtl"]
+	path = dtl
+	url = https://github.com/cubicdaiya/dtl

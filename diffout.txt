@@ -1,0 +1,5 @@
+HELLO HALF WORLD!
+2 3 4 5 6 7 8 whitespace 
+There should be no space here:
+There should be a space here: 
+More text
