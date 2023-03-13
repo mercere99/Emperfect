@@ -11,35 +11,34 @@
 #ifndef EMPERFECT_CHECK_INFO_HPP
 #define EMPERFECT_CHECK_INFO_HPP
 
-#include <string>
-
 #include "emp/base/notify.hpp"
 #include "emp/bits/BitVector.hpp"
 #include "emp/datastructs/vector_utils.hpp"
+#include "emp/tools/String.hpp"
 
-using string_block_t = emp::vector<std::string>;
+using string_block_t = emp::vector<emp::String>;
 
 // Parsed information about a given check.
 class CheckString {
 private:
-  std::string test = "";
-  std::string lhs = "";
-  std::string comparator = "";
-  std::string rhs = "";
+  emp::String test = "";
+  emp::String lhs = "";
+  emp::String comparator = "";
+  emp::String rhs = "";
 
 public:
-  void SetCheck(const std::string & _test, std::string location) {
+  void SetCheck(const emp::String & _test, emp::String location) {
     test = _test;
-    emp::notify::TestError(emp::find_any_of(test, 0, "&&", "||") != std::string::npos,
+    emp::notify::TestError(emp::find_any_of(test, 0, "&&", "||") != emp::String::npos,
       location, ": Unit test checks do not allow \"&&\" or \"||\".");
 
     size_t comp_pos = emp::find_any_of(test, 0, "==", "!=", "<", "<=", ">", ">=");
-    bool has_comp = (comp_pos != std::string::npos);
+    bool has_comp = (comp_pos != emp::String::npos);
 
     if (has_comp) {
       // Make sure it doesn't have TWO comparisons.
       emp::notify::TestError(
-        emp::find_any_of(test, comp_pos+2, "==", "!=", "<", "<=", ">", ">=") != std::string::npos,
+        emp::find_any_of(test, comp_pos+2, "==", "!=", "<", "<=", ">", ">=") != emp::String::npos,
         location, ": Unit test checks can have only one comparison.");
 
       size_t comp_size = (test[comp_pos+1] == '=') ? 2 : 1;
@@ -54,7 +53,7 @@ public:
     }
   }
 
-  void SetCheckType(const std::string & expression, const std::string & type, std::string location) {
+  void SetCheckType(const emp::String & expression, const emp::String & type, emp::String location) {
     (void) location;
     test = emp::to_string("TYPE(", expression, ") == ", type);
     lhs = expression;
@@ -62,11 +61,11 @@ public:
     comparator = "TYPE";
   }
 
-  const std::string & ToString() const { return test; }
-  std::string ToLiteral() const { return emp::to_literal(test); }
-  std::string GetLHS() const { return lhs; }
-  std::string GetRHS() const { return rhs; }
-  std::string GetComparator() const { return comparator; }
+  const emp::String & ToString() const { return test; }
+  emp::String ToLiteral() const { return emp::to_literal(test); }
+  emp::String GetLHS() const { return lhs; }
+  emp::String GetRHS() const { return rhs; }
+  emp::String GetComparator() const { return comparator; }
   bool HasComp() const { return comparator.size(); }
 };
 
@@ -80,23 +79,23 @@ class CheckInfo {
 private:
 
   CheckString test;            // The test string associated with this check.
-  std::string location;        // Position in the file where this check is located.
+  emp::String location;        // Position in the file where this check is located.
   size_t id;                   // Unique ID for this check.
   CheckType type;              // What type of check are we doing?
   string_block_t error_msgs;   // Extra arguments from check to use in error messages.
 
-  emp::vector<std::string> lhs_value;  // Resulting value on left (e.g., "20")
-  emp::vector<std::string> rhs_value;  // Resulting value on right (e.g., "21", if rhs is "x+5" and x=16)
+  emp::vector<emp::String> lhs_value;  // Resulting value on left (e.g., "20")
+  emp::vector<emp::String> rhs_value;  // Resulting value on right (e.g., "21", if rhs is "x+5" and x=16)
   emp::BitVector passed = false;       // Was this check successful?
-  emp::vector<std::string> error_out;  // Message from test runner for students.
+  emp::vector<emp::String> error_out;  // Message from test runner for students.
 
 public:
-  CheckInfo(const std::string & check_body, std::string _location, size_t _id, CheckType _type)
+  CheckInfo(const emp::String & check_body, emp::String _location, size_t _id, CheckType _type)
     : location(_location), id(_id), type(_type)
   {
     emp_assert(type != CheckType::UNKNOWN);
 
-    error_msgs = emp::slice(check_body, ',', 256, true, true, true);
+    error_msgs = check_body.Slice(",", emp::StringSyntax{"\"","(){}"}, true);
 
     if (type == CheckType::ASSERT) {
       // Split off the test (the first argument) and make sure it's valid.
@@ -106,8 +105,8 @@ public:
     else if (type == CheckType::TYPE_COMPARE) {
       // The first argument is the expression, the second is the type to use.
       emp::notify::TestError(error_msgs.size() < 2, location, ": CHECK_TYPE needs at least two args.");
-      std::string lhs = emp::PopFront(error_msgs);
-      std::string rhs = emp::PopFront(error_msgs);
+      emp::String lhs = emp::PopFront(error_msgs);
+      emp::String rhs = emp::PopFront(error_msgs);
       test.SetCheckType(lhs, rhs, location);
     }
 
@@ -119,9 +118,9 @@ public:
   bool PassedAny() const { return passed.Any(); }
 
   void PushResult(bool success) { passed.push_back(success); }
-  void PushLHSValue(std::string _in) { emp::trim_whitespace(_in); lhs_value.push_back(_in); }
-  void PushRHSValue(std::string _in) { emp::trim_whitespace(_in); rhs_value.push_back(_in); }
-  void PushErrorMsg(std::string _in) { emp::trim_whitespace(_in); error_out.push_back(_in); }
+  void PushLHSValue(emp::String _in) { emp::trim_whitespace(_in); lhs_value.push_back(_in); }
+  void PushRHSValue(emp::String _in) { emp::trim_whitespace(_in); rhs_value.push_back(_in); }
+  void PushErrorMsg(emp::String _in) { emp::trim_whitespace(_in); error_out.push_back(_in); }
 
   void ToCPP_CHECK(std::ostream & out) const {
     // Generate code for this test.
@@ -148,7 +147,7 @@ public:
         << "    bool _emperfect_success = std::is_same<_emperfect_type1, _emperfect_type2>();\n";
   }
 
-  std::string ToCPP() const {
+  emp::String ToCPP() const {
     std::stringstream out;
 
     // Generate the test
@@ -160,7 +159,7 @@ public:
         << "    std::string _emperfect_msg = \"Success!\";\n"
         << "    if (!_emperfect_success) {\n"
         << "      std::stringstream ss;\n";
-    for (std::string x : error_msgs) {
+    for (emp::String x : error_msgs) {
       out << "      ss << " << x << ";\n";
     }
     out << "      _emperfect_msg = ss.str();"
@@ -188,8 +187,8 @@ public:
   void PrintResults(OutputInfo & output, size_t call_id) const {
     std::ostream & out = output.GetFile();
 
-    std::string color = "green";
-    std::string message = "Passed!";
+    emp::String color = "green";
+    emp::String message = "Passed!";
     if (!passed[call_id]) { color = "red"; message = "Failed."; }
 
     if (output.IsHTML()) {
