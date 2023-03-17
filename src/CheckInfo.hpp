@@ -45,8 +45,8 @@ public:
       comparator = test.substr(comp_pos, comp_size);
       lhs = test.substr(0, comp_pos);
       rhs = test.substr(comp_pos+comp_size);
-      emp::trim_whitespace(lhs);
-      emp::trim_whitespace(rhs);
+      lhs.Trim();
+      rhs.Trim();
     }
     else {
       lhs = test; // Whole test is on the left-hand-side.
@@ -55,14 +55,14 @@ public:
 
   void SetCheckType(const emp::String & expression, const emp::String & type, emp::String location) {
     (void) location;
-    test = emp::to_string("TYPE(", expression, ") == ", type);
+    test.Set("TYPE(", expression, ") == ", type);
     lhs = expression;
     rhs = type;
     comparator = "TYPE";
   }
 
   const emp::String & ToString() const { return test; }
-  emp::String ToLiteral() const { return emp::to_literal(test); }
+  emp::String ToLiteral() const { return test.AsLiteral(); }
   emp::String GetLHS() const { return lhs; }
   emp::String GetRHS() const { return rhs; }
   emp::String GetComparator() const { return comparator; }
@@ -118,9 +118,9 @@ public:
   bool PassedAny() const { return passed.Any(); }
 
   void PushResult(bool success) { passed.push_back(success); }
-  void PushLHSValue(emp::String _in) { emp::trim_whitespace(_in); lhs_value.push_back(_in); }
-  void PushRHSValue(emp::String _in) { emp::trim_whitespace(_in); rhs_value.push_back(_in); }
-  void PushErrorMsg(emp::String _in) { emp::trim_whitespace(_in); error_out.push_back(_in); }
+  void PushLHSValue(emp::String _in) { _in.Trim(); lhs_value.push_back(_in); }
+  void PushRHSValue(emp::String _in) { _in.Trim(); rhs_value.push_back(_in); }
+  void PushErrorMsg(emp::String _in) { _in.Trim(); error_out.push_back(_in); }
 
   void ToCPP_CHECK(std::ostream & out) const {
     // Generate code for this test.
@@ -128,8 +128,14 @@ public:
         << "  {\n"
         << "    auto _emperfect_lhs = " << test.GetLHS() << ";\n";
     if (test.HasComp()) {
-      out << "    auto _emperfect_rhs = " << test.GetRHS() << ";\n"
-          << "    bool _emperfect_success = (_emperfect_lhs " << test.GetComparator() << " _emperfect_rhs);\n";
+      emp::String rhs_string = test.GetRHS();
+      if (rhs_string.IsNumber()) {
+        out << "    auto _emperfect_rhs = " << rhs_string << ";\n"
+            << "    bool _emperfect_success = (_emperfect_lhs " << test.GetComparator() << " " << rhs_string << ");\n";
+      } else {
+        out << "    auto _emperfect_rhs = " << rhs_string << ";\n"
+            << "    bool _emperfect_success = (_emperfect_lhs " << test.GetComparator() << " _emperfect_rhs);\n";
+      }
     } else {
       out << "    auto _emperfect_rhs = \"N/A\";\n"
           << "    bool _emperfect_success = _emperfect_lhs;\n";
@@ -143,7 +149,7 @@ public:
         << "    using _emperfect_type1 = decltype(" << test.GetLHS() << ");\n"
         << "    using _emperfect_type2 = " << test.GetRHS() << ";\n"
         << "    std::string _emperfect_lhs = _EMP_GetTypeName<_emperfect_type1>();\n"
-        << "    std::string _emperfect_rhs = " << emp::to_literal(test.GetRHS()) << ";\n"
+        << "    std::string _emperfect_rhs = " << test.GetRHS().AsLiteral() << ";\n"
         << "    bool _emperfect_success = std::is_same<_emperfect_type1, _emperfect_type2>();\n";
   }
 
@@ -219,9 +225,9 @@ public:
       // If there was a comparison, show results on both sides of it.
       if (test.HasComp()) {
         size_t max_width = std::max(test.GetLHS().size(), test.GetRHS().size());
-        out << "Left side : " << emp::pad_back(test.GetLHS(), ' ', max_width)
+        out << "Left side : " << test.GetLHS().PadBack(' ', max_width)
                               << "  ==>  " << lhs_value[call_id] << "\n"
-            << "Right side: " << emp::pad_back(test.GetRHS(), ' ', max_width)
+            << "Right side: " << test.GetRHS().PadBack(' ', max_width)
                               << "  ==>  " << rhs_value[call_id] << "\n";
       }
 
