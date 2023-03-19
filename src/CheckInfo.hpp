@@ -161,10 +161,11 @@ public:
     else if (type == CheckType::TYPE_COMPARE) ToCPP_CHECK_TYPE(out);
 
     // Save the results.
-    out << "    _emperfect_passed &= _emperfect_success;\n"
-        << "    std::string _emperfect_msg = \"Success!\";\n"
+    out << "    std::string _emperfect_msg = \"Success!\";\n"
         << "    if (!_emperfect_success) {\n"
-        << "      std::stringstream ss;\n";
+        << "      _emperfect_error_count++;\n"
+        << "      std::stringstream ss;\n"
+        << "      ss << \"[ERROR] \";\n";
     for (emp::String x : error_msgs) {
       out << "      ss << " << x << ";\n";
     }

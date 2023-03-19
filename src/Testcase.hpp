@@ -279,7 +279,7 @@ public:
       << header << "\n"
       << "void _emperfect_main() {\n"
       << "  std::ofstream _emperfect_results(\"" << result_filename << "\");\n"
-      << "  bool _emperfect_passed = true;\n"
+      << "  bool _emperfect_error_count = 0;\n"
       << "  [[maybe_unused]] size_t _emperfect_check_id = 0;\n\n";
 
     // Add updated code for this specific test.
@@ -287,7 +287,7 @@ public:
 
     // Close out the main and make sure it get's run appropriately.
     cpp_file
-      << "  _emperfect_results << \"SCORE \" << (_emperfect_passed ? "
+      << "  _emperfect_results << \"SCORE \" << (!_emperfect_error_count ? "
           << points << " : 0) << \"\\n\";\n"
       << "}\n\n"
       << "// Build a test runner to be executed before main().\n"
