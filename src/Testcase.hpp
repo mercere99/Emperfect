@@ -131,8 +131,7 @@ public:
           emp::MakeString("Testcase #", id, ", Line", line_num, " (check ", check_id, ")");
         checks.emplace_back(check_body, location, check_id, CheckType::ASSERT);
         return checks.back().ToCPP();
-      },
-      emp::StringSyntax::Full() );
+      });
 
     // Take an input line and convert "CHECK" macro into full analysis and output code.
     out_code = emp::replace_macro(out_code, "CHECK_TYPE",
