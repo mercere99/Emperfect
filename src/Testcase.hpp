@@ -23,7 +23,8 @@ enum class TestStatus {
   FAILED_CHECK,   // Failed one of the CHECK statements.
   FAILED_TIME,    // Took too long and had a timeout.
   FAILED_RUN,     // Had an error output during run.
-  FAILED_OUTPUT   // Output didn't match expected.
+  FAILED_OUTPUT,  // Output didn't match expected.
+  MISSED_ERROR    // Wrong error code was returned.
 };
 
 class Testcase {
@@ -38,6 +39,7 @@ private:
   emp::String expect_filename; // Name of file to compare against standard output.
   emp::String code_filename;   // Name of file with code to test.
   emp::String args;            // Command-line arguments.
+  int expect_exit_code = 0;    // The expected exist code.
 
   // Names for generated files.
   emp::String cpp_filename;     // To create with C++ code for this test
@@ -92,7 +94,10 @@ public:
     if (compile_exit_code) return TestStatus::FAILED_COMPILE;
     if (CountPassed() != checks.size()) return TestStatus::FAILED_CHECK;
     if (hit_timeout) return TestStatus::FAILED_TIME;
-    if (run_exit_code) return TestStatus::FAILED_RUN;
+    if (run_exit_code != expect_exit_code) {
+      if (expect_exit_code) return TestStatus::MISSED_ERROR;
+      if (run_exit_code) return TestStatus::FAILED_RUN;
+    }
     if (!output_match) return TestStatus::FAILED_OUTPUT;
     return TestStatus::PASSED;
   }
@@ -105,6 +110,9 @@ public:
     case TestStatus::FAILED_TIME: return "Timed Out";
     case TestStatus::FAILED_RUN: return "Error During Run";
     case TestStatus::FAILED_OUTPUT: return "Incorrect Output";
+    case TestStatus::MISSED_ERROR:
+      return emp::MakeString("Wrong exit code (expected ", expect_exit_code,
+                             " received ", run_exit_code, ")");
     }
     return "Unknown";
   }
@@ -464,6 +472,10 @@ public:
         color = "OrangeRed"; message = "FAILED due to run-time error."; break;
       case TestStatus::FAILED_OUTPUT:
         color = "OrangeRed"; message = "FAILED due to mis-matched output."; break;
+      case TestStatus::MISSED_ERROR:
+        color = "OrangeRed";
+        message.Set("FAILED due to wrong error code (expected ", expect_exit_code,
+                    "; received ", run_exit_code, ")."); break;
     }
 
     if (output.IsHTML()) {
@@ -493,12 +505,13 @@ public:
     if ((hidden && !output.HasHiddenDetails())) return;
 
     // Decide what else we print based on the status.
-    bool print_checks = GetStatus() == TestStatus::FAILED_CHECK || output.HasPassedDetails();
+    const auto status = GetStatus();
+    bool print_checks = status == TestStatus::FAILED_CHECK || output.HasPassedDetails();
     bool print_code = Failed() || output.HasPassedDetails();
-    bool print_compile = GetStatus() == TestStatus::FAILED_COMPILE;
-    bool print_error = GetStatus() == TestStatus::FAILED_RUN;
-    bool print_input = GetStatus() == TestStatus::FAILED_OUTPUT || output.HasPassedDetails();
-    bool print_diff = GetStatus() == TestStatus::FAILED_OUTPUT;
+    bool print_compile = status == TestStatus::FAILED_COMPILE;
+    bool print_error = status == TestStatus::FAILED_RUN;
+    bool print_input = status == TestStatus::MISSED_ERROR || status == TestStatus::FAILED_OUTPUT || output.HasPassedDetails();
+    bool print_diff = status == TestStatus::FAILED_OUTPUT;
 
     if (print_checks) PrintResult_Checks(output);
     if (print_code) PrintCode(output);
@@ -518,6 +531,7 @@ public:
         << "call_main.........: " << (call_main ? "true" : "false") << "\n"
         << "Command Line Args.: " << args << "\n"
         << "FILENAME Input to provide...: " << (input_filename.size() ? input_filename : "(none)") << "\n"
+        << "FILENAME Expected exit code.: " << expect_exit_code << "\n"
         << "FILENAME Expected output....: " << (expect_filename.size() ? expect_filename : "(none)") << "\n"
         << "FILENAME Code for testcase..: " << (code_filename.size() ? code_filename : "(none)") << "\n"
         << "FILENAME Generated CPP file.: " << (cpp_filename.size() ? cpp_filename : "(none)") << "\n"

@@ -197,6 +197,7 @@ private:
 
       if (arg == "args") test.args = value;
       else if (arg == "code_file") test.code_filename = value;
+      else if (arg == "exit_code") test.expect_exit_code = value.As<int>();
       else if (arg == "expect") test.expect_filename = value;
       else if (arg == "hidden") test.hidden = ParseBool(value, "hidden");
       else if (arg == "input") test.input_filename = value;
@@ -243,13 +244,13 @@ private:
     std::cout << run_command << std::endl;
     test.run_exit_code = std::system(run_command.c_str()); // % 256;
     // Timeout exit code may be first byte or second byte.
-    if (test.run_exit_code % 256 == 124 ||
-        test.run_exit_code / 256 == 124) {
-      test.hit_timeout = true;
-      std::cout << "...Halted due to timeout." << std::endl;
-    }
+    test.hit_timeout = test.run_exit_code % 256 == 124 || test.run_exit_code / 256 == 124;
+    test.run_exit_code /= 256;
     std::cout << "Executable exit code: " << test.run_exit_code << std::endl;
-    return (test.run_exit_code == 0);
+    if (test.run_exit_code == test.expect_exit_code) return true;
+
+    if (test.hit_timeout) std::cout << "...Halted due to timeout." << std::endl;
+    return false;
   }
 
   void CompareTestResults(Testcase & test) {
