@@ -205,15 +205,17 @@ public:
           << message << "</b></span><br>\n";
 
       if (error_out[call_id].size()) {
-        out << "Error Message: " << error_out[call_id] << "<br>\n";
+        out << "Error Message: " << error_out[call_id].AsWebSafe() << "<br>\n";
       }
 
       // If there was a comparison, show results on both sides of it.
       if (test.HasComp()) {
-        out << "<table><tr><td>Left side:<td><code>" << test.GetLHS()
-            << "</code><td>&nbsp;&nbsp;==><td><code>" << lhs_value[call_id] << "</code></tr>\n"
-            << "<tr><td>Right side:<td><code>" << test.GetRHS() << "</code><td>&nbsp;&nbsp;==><td><code>"
-            << rhs_value[call_id] << "</code></tr></table><br>\n";
+        out << "<table><tr><td>Left side:<td><code>" << test.GetLHS().AsWebSafe()
+            << "</code><td>&nbsp;&nbsp;==><td><code>" << lhs_value[call_id].AsWebSafe()
+            << "</code></tr>\n"
+            << "<tr><td>Right side:<td><code>" << test.GetRHS().AsWebSafe()
+            << "</code><td>&nbsp;&nbsp;==><td><code>"
+            << rhs_value[call_id].AsWebSafe() << "</code></tr></table><br>\n";
       }
     } else {
       // Show the test code.
