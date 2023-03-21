@@ -131,7 +131,8 @@ public:
           emp::MakeString("Testcase #", id, ", Line", line_num, " (check ", check_id, ")");
         checks.emplace_back(check_body, location, check_id, CheckType::ASSERT);
         return checks.back().ToCPP();
-      });
+      },
+      emp::StringSyntax::Full() );
 
     // Take an input line and convert "CHECK" macro into full analysis and output code.
     out_code = emp::replace_macro(out_code, "CHECK_TYPE",
@@ -279,7 +280,7 @@ public:
       << header << "\n"
       << "void _emperfect_main() {\n"
       << "  std::ofstream _emperfect_results(\"" << result_filename << "\");\n"
-      << "  bool _emperfect_error_count = 0;\n"
+      << "  size_t _emperfect_error_count = 0;\n"
       << "  [[maybe_unused]] size_t _emperfect_check_id = 0;\n\n";
 
     // Add updated code for this specific test.
