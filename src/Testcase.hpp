@@ -92,12 +92,12 @@ public:
 
   TestStatus GetStatus() const {
     if (compile_exit_code) return TestStatus::FAILED_COMPILE;
-    if (CountPassed() != checks.size()) return TestStatus::FAILED_CHECK;
     if (hit_timeout) return TestStatus::FAILED_TIME;
     if (run_exit_code != expect_exit_code) {
       if (expect_exit_code) return TestStatus::MISSED_ERROR;
       if (run_exit_code) return TestStatus::FAILED_RUN;
     }
+    if (CountPassed() != checks.size()) return TestStatus::FAILED_CHECK;
     if (!output_match) return TestStatus::FAILED_OUTPUT;
     return TestStatus::PASSED;
   }
