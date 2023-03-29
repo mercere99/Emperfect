@@ -511,7 +511,7 @@ public:
     bool print_compile = status == TestStatus::FAILED_COMPILE;
     bool print_error = status == TestStatus::FAILED_RUN;
     bool print_input = status == TestStatus::MISSED_ERROR || status == TestStatus::FAILED_OUTPUT || output.HasPassedDetails();
-    bool print_diff = status == TestStatus::FAILED_OUTPUT;
+    bool print_diff = status == TestStatus::FAILED_RUN || status == TestStatus::FAILED_OUTPUT;
 
     if (print_checks) PrintResult_Checks(output);
     if (print_code) PrintCode(output);
