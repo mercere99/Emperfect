@@ -253,6 +253,7 @@ private:
     return false;
   }
 
+  // Make sure that the output for the executable matches any expected output.
   void CompareTestResults(Testcase & test) {
     if (test.expect_filename.size()) {
       emp::File expect_output(test.expect_filename);
