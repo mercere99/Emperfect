@@ -114,3 +114,11 @@ double Sum(double x, double y) { return x + y; }
   
 :TestCase name="Testing escape chars in output.", timeout=10, points=10, expect="halfout.txt"
   std::cout << "HELLO HALF WORLd!\t";
+
+:TestCase name="Fail with error.", points=5
+  exit(1);
+
+:TestCase name="Pass with error.", points=5, exit_code=1
+  exit(1);
+
+:TestCase name="Fail by failing to error.", points=5, exit_code=1

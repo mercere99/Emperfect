@@ -60,18 +60,18 @@ private:
 
   emp::vector<Testcase> tests;
   emp::vector<OutputInfo> outputs;
-  emp::vector<std::string> compile;
-  emp::vector<std::string> header;
+  emp::vector<emp::String> compile;
+  emp::vector<emp::String> header;
 
-  std::map<std::string, std::string> var_map; // Map of all usable variables.
+  std::map<emp::String, emp::String> var_map; // Map of all usable variables.
 
   static constexpr size_t npos = static_cast<size_t>(-1);
 
   // --- Helper functions ---
 
   // Load in a value for a setting that translates to a bool.
-  bool ParseBool(const std::string & input,
-                 const std::string & setting_name)
+  bool ParseBool(const emp::String & input,
+                 const emp::String & setting_name)
   {
     if (input == "true" || input == "1") return true;
     if (input == "false" || input == "0") return false;
@@ -80,12 +80,12 @@ private:
   }
 
   // Load new variables into var_map and return just the new variables.
-  auto LoadVars(const std::string & args) {
+  auto LoadVars(const emp::String & args) {
     // Return an empty map if all we have is whitespace.
-    if (emp::is_whitespace(args)) return std::map<std::string, std::string>();
+    if (emp::is_whitespace(args)) return std::map<emp::String, emp::String>();
 
     // Otherwise assume comma-separated assignments.
-    auto setting_map = emp::slice_assign(args);
+    auto setting_map = args.SliceAssign();
     for (auto [var, value] : setting_map) {
       var_map[var] = value;
     }
@@ -95,17 +95,17 @@ private:
   }
 
   // Take an input line and fill out any variables, as needed.
-  std::string ApplyVars(const std::string & line) {
+  emp::String ApplyVars(const emp::String & line) {
     size_t next_pos = 0, var_start = 0;
-    std::string out_string;
-    while ((var_start = line.find("${", next_pos)) != std::string::npos) {
+    emp::String out_string;
+    while ((var_start = line.find("${", next_pos)) != emp::String::npos) {
       // Copy the string to the start of the variable.
       out_string += line.substr(next_pos, var_start-next_pos);
 
       // Replace the variable we found.
       size_t var_end = line.find("}", var_start);
-      emp::notify::TestError(var_end == std::string::npos, "No end to variable on line: ", line);
-      std::string var_name = emp::to_lower( line.substr(var_start+2, var_end-var_start-2) );
+      emp::notify::TestError(var_end == emp::String::npos, "No end to variable on line: ", line);
+      emp::String var_name = emp::to_lower( line.substr(var_start+2, var_end-var_start-2) );
       emp::notify::TestError(!emp::Has(var_map, var_name), "Unknown variable used: ", var_name);
       out_string += var_map[var_name];
 
@@ -116,31 +116,31 @@ private:
     return out_string;
   }
 
-  void Init(const std::string & args="") {
+  void Init(const emp::String & args="") {
     emp::notify::TestError(is_init, "Error: :Init run twice!");
     is_init = true;
     LoadVars(args);
 
     // Make sure ${DIR} exists.
-    std::string dir_name = var_map["dir"];
-    if (!std::filesystem::exists(dir_name)) {
+    emp::String dir_name = var_map["dir"];
+    if (!std::filesystem::exists(static_cast<std::string>(dir_name))) {
       std::cout << "CREATING: " << dir_name << std::endl;
-      std::filesystem::create_directories(dir_name);
+      std::filesystem::create_directories(static_cast<std::string>(dir_name));
     }
 
     // Setup the output file for all of the tests.
-    std::string log_filename = emp::to_string(var_map["dir"], "/", var_map["log"]);
+    emp::String log_filename = emp::to_string(var_map["dir"], "/", var_map["log"]);
     std::ofstream test_log(log_filename);
     test_log << "== EMPERFECT TEST LOG ==\n" << std::endl;
     test_log.close();  // Individual tests will re-open and append to the log.
   }
 
   // Load a block of code from the file, using file_scan
-  void LoadCode(emp::vector<std::string> & code, const std::string & args="", bool remove_blank=true) {
+  void LoadCode(emp::vector<emp::String> & code, const emp::String & args="", bool remove_blank=true) {
     if (!is_init) Init();
 
     if (args != "") LoadVars(args);
-    code = file_scan.ReadUntil( [](std::string in){ return emp::has_char_at(in, ':', 0); } );
+    code = file_scan.ReadUntil( [](emp::String in){ return emp::has_char_at(in, ':', 0); } );
     if (remove_blank) {
       for (size_t i=0; i < code.size();) {
         if (emp::is_whitespace(code[i])) {
@@ -152,7 +152,7 @@ private:
   }
 
   // Add a new method of collecting output.
-  void AddOutput(const std::string & args) {
+  void AddOutput(const emp::String & args) {
     if (!is_init) Init();
 
     auto setting_map = LoadVars(args);
@@ -173,9 +173,9 @@ private:
   }
 
   // Use a set of arguments to configure a testcase.
-  void ConfigTestcase(Testcase & test, const std::string & args) {
+  void ConfigTestcase(Testcase & test, const emp::String & args) {
     // Initialize any special values that may not be set.
-    std::string file_base = emp::to_string(var_map["dir"], "/Test", test.id);
+    emp::String file_base = emp::to_string(var_map["dir"], "/Test", test.id);
     var_map["compile"] = file_base + "-compile.txt";
     var_map["cpp"] =     file_base + ".cpp";
     var_map["error"] =   file_base + "-errors.txt";
@@ -197,6 +197,7 @@ private:
 
       if (arg == "args") test.args = value;
       else if (arg == "code_file") test.code_filename = value;
+      else if (arg == "exit_code") test.expect_exit_code = value.As<int>();
       else if (arg == "expect") test.expect_filename = value;
       else if (arg == "hidden") test.hidden = ParseBool(value, "hidden");
       else if (arg == "input") test.input_filename = value;
@@ -227,7 +228,7 @@ private:
 
   void CompileTestCPP(Testcase & test) {
     // Add user-provided headers.
-    for (std::string line : compile) {
+    for (emp::String line : compile) {
       line = ApplyVars(line);
       std::cout << line << std::endl;
       test.compile_exit_code = std::system(line.c_str());
@@ -236,20 +237,20 @@ private:
   }
 
   bool RunTestExe(Testcase & test) {
-    std::string run_command = emp::to_string("timeout ", test.timeout, " ./", test.exe_filename);
+    emp::String run_command = emp::to_string("timeout ", test.timeout, " ./", test.exe_filename);
     if (test.args.size()) run_command += emp::to_string(" ", test.args);
     if (test.input_filename.size()) run_command += emp::to_string(" < ", test.input_filename);
     run_command += emp::to_string(" > ", test.output_filename, " 2> ", test.error_filename);
     std::cout << run_command << std::endl;
     test.run_exit_code = std::system(run_command.c_str()); // % 256;
     // Timeout exit code may be first byte or second byte.
-    if (test.run_exit_code % 256 == 124 ||
-        test.run_exit_code / 256 == 124) {
-      test.hit_timeout = true;
-      std::cout << "...Halted due to timeout." << std::endl;
-    }
+    test.hit_timeout = test.run_exit_code % 256 == 124 || test.run_exit_code / 256 == 124;
+    test.run_exit_code /= 256;
     std::cout << "Executable exit code: " << test.run_exit_code << std::endl;
-    return (test.run_exit_code == 0);
+    if (test.run_exit_code == test.expect_exit_code) return true;
+
+    if (test.hit_timeout) std::cout << "...Halted due to timeout." << std::endl;
+    return false;
   }
 
   void CompareTestResults(Testcase & test) {
@@ -290,8 +291,8 @@ private:
     emp::File result_file(test.result_filename);
     result_file.RemoveEmpty();
     size_t check_id = 0;
-    for (std::string line : result_file) {
-      std::string field = emp::string_pop_word(line);
+    for (emp::String line : result_file) {
+      emp::String field = emp::string_pop_word(line);
       if (field == ":CHECK:") check_id = emp::from_string<size_t>(line);
       else if (field == ":TEST:") {} // We already have this...
       else if (field == ":RESULT:") {
@@ -339,7 +340,7 @@ private:
   }
 
   // Add a new Testcase and run it.
-  void AddTestcase(const std::string & args) {
+  void AddTestcase(const emp::String & args) {
     emp::notify::TestError(compile.size() == 0, "Cannot set up testcase without compile rules.");
 
     tests.emplace_back(tests.size());
@@ -359,21 +360,21 @@ public:
   }
 
   // Load test configurations from a stream.
-  void Load(std::istream & is, std::string stream_name="input") {
+  void Load(std::istream & is, emp::String stream_name="input") {
     input_file.Load(is);
     input_file.RemoveComments(EMPERFECT_COMMENT); // Remove comments that shouldn't be in output.
     // NOTE: Do not change whitespace as it might matter for output code.
     
     // Loop through the file and process each line.
     while (file_scan) {
-      std::string line = ApplyVars( file_scan.Read() );
+      emp::String line = ApplyVars( file_scan.Read() );
       if (emp::is_whitespace(line)) continue;  // Skip empty lines.
 
       // We are expecting a command, but don't get one, report an error.
       emp::notify::TestError(line[0] != ':',
         "Line ", file_scan.GetLine()-1, " in ", stream_name, " unknown\n", line, "\n");
 
-      const std::string command = emp::to_lower( emp::string_pop_word(line) );
+      const emp::String command = emp::to_lower( emp::string_pop_word(line) );
       if (command == ":init") Init(line);
       else if (command == ":compile") LoadCode(compile, line);
       else if (command == ":header") LoadCode(header, line);
@@ -387,7 +388,7 @@ public:
     PrintResults();
   }
 
-  void Load(std::string filename) {
+  void Load(emp::String filename) {
     std::ifstream file(filename);
     Load (file, filename);
   }
@@ -423,7 +424,7 @@ public:
   /// @param out Which stream should results be printed to?
   /// @param link_base Where should links go?
   ///        "#" is local, "file.html#" links to file.html. Empty-> don't create links.
-  void PrintSummary_HTML(std::ostream & out, std::string link_base="#") {
+  void PrintSummary_HTML(std::ostream & out, emp::String link_base="#") {
     out << "<h2>Final Score: <span style=\"color: blue\">"
         << GetPercentEarned() << "%</span></h2>\n" << std::endl;
 
@@ -461,7 +462,7 @@ public:
     for (auto & output : outputs) {
       if (output.HasSummary()) {
         if (output.IsHTML()) {
-          std::string link_base = "";
+          emp::String link_base = "";
           if (output.HasLink()) link_base = output.GetLinkFile() + "#";
           if (output.HasResults()) link_base = "#";
           PrintSummary_HTML(output.GetFile(), link_base);
