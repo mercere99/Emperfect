@@ -1,14 +1,15 @@
 default: native
 
 # Identify all directory locations
-EMP_DIR   = ../Empirical
+EMP_DIR   = ./empirical
+DTL_DIR   = ./dtl
 
 TARGET := Emperfect
 
 # Specify sets of compilation flags to use
 FLAGS_version := -std=c++20
 FLAGS_warn    = -Wall -Wextra -Wno-unused-function -Woverloaded-virtual -pedantic
-FLAGS_include = -I$(EMP_DIR)/include/ -I${EMP_DIR}/third-party/cereal/include/
+FLAGS_include = -I$(EMP_DIR)/include/ -I${EMP_DIR}/third-party/cereal/include/ -I${DTL_DIR}/dtl
 FLAGS_main    = $(FLAGS_version) $(FLAGS_warn) $(FLAGS_include) -pthread
 
 FLAGS_QUICK  = $(FLAGS_main) -DNDEBUG
