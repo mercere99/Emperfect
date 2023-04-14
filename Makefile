@@ -19,6 +19,9 @@ FLAGS_GRUMPY = $(FLAGS_main) -DNDEBUG -Wconversion -Weffc++
 FLAGS_EMSCRIPTEN = --js-library $(EMP_DIR)/web/library_emp.js -s EXPORTED_FUNCTIONS="['_main', '_empCppCallback']" -s NO_EXIT_RUNTIME=1  -s TOTAL_MEMORY=67108864
 FLAGS_COVERAGE = $(FLAGS_main)  -O0 -DEMP_TRACK_MEM -ftemplate-backtrace-limit=0 -fprofile-instr-generate -fcoverage-mapping -fno-inline -fno-elide-constructors
 
+install:
+	git submodule update --init --recursive
+
 native: FLAGS := $(FLAGS_OPT)
 native: $(TARGET)
 
