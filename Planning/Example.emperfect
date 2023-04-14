@@ -78,6 +78,8 @@ double Sum(double x, double y) { return x + y; }
   CHECK(Half(2.2222) > 1.11105);
 
 :TestCase run_main=true, name="Failed IO test due to case-mismatch", points=10, expect="halfout.txt", match_case=true
+:TestCase run_main=true, name="Diff test", points=10, expect="diffout.txt", match_case=true
+
 
 :TestCase name="Test Timeout", timeout=1, points=15
   double x = 1.0;
