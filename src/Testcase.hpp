@@ -366,7 +366,7 @@ public:
       for (auto line : code) {
         const bool highlight = false; // Passed(0);
         if (highlight) out << "<b>";
-        out << line << "\n";
+        out << line.AsWebSafe() << "\n";
         if (highlight) out << "</b>";
       }
       out << "</pre></tr></table>\n";
@@ -387,7 +387,7 @@ public:
       out << "<table style=\"background-color:Lavender\">"
           << "<tr><td style=\"" << size_style << " display:block;\"><pre>\n\n";
       for (auto line : file) {
-        out << line << "\n";
+        out << line.AsWebSafe() << "\n";
       }
       out << "</pre></tr></table>\n";
     } else {
@@ -405,7 +405,7 @@ public:
       out << "<table>\n"
           << "<tr><th>Run-time Error Messages:</tr>\n"
           << "<tr><td valign=\"top\" style=\"background-color:LightGray\"><pre>\n";
-      for (auto line : error_file) out << line << "\n";
+      for (auto line : error_file) out << line.AsWebSafe() << "\n";
       out << "</pre></tr></table>\n";
     } else {
       out << "========== RUN-TIME ERRORS ==========\n";
@@ -419,7 +419,7 @@ public:
     std::ostream & out = output.GetFile();
     out << "Command Line Arguments: ";
     if (output.IsHTML()) {
-      out << "<code>" << args << "</code><br>\n";
+      out << "<code>" << args.AsWebSafe() << "</code><br>\n";
     } else {
       out << args << "\n";
     }
@@ -442,7 +442,7 @@ public:
           << "<tr><th>Input</tr>\n"
           << "<tr><td valign=\"top\" style=\"background-color:LightGreen\"><pre>\n";
       for (auto line : input_file) {
-        out << line << "\n";
+        out << line.AsWebSafe() << "\n";
       }
       out << "</pre></tr></table>\n";
     } else {
@@ -522,7 +522,7 @@ public:
 
     if (output.IsHTML()) {
       out << "<b>Result: <span style=\"color: " << color << "\">"
-          << message << "</b></span><br><br>\n\n";
+          << message.AsWebSafe() << "</b></span><br><br>\n\n";
     } else {
       out << "Result: " << message << "\n";
     }
