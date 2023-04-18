@@ -233,6 +233,7 @@ private:
       std::cout << line << std::endl;
       test.compile_exit_code = std::system(line.c_str());
       std::cout << "Compile exit code: " << test.compile_exit_code << std::endl;
+      if (test.compile_exit_code) break;
     }
   }
 
