@@ -321,7 +321,7 @@ public:
       << "  return out;\n"
       << "}\n"
       << "std::string to_literal(const char * str) { return to_literal(std::string(str)); }\n"
-      << "template <typename T> const T & to_literal(const T & val) {\n"
+      << "template <typename T> std::string to_literal(const T & val) {\n"
       << "  std::stringstream ss;\n"
       << "  ss << val;\n"
       << "  return to_literal(ss.str());\n"
