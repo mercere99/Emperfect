@@ -384,6 +384,16 @@ public:
     std::ostream & out = output.GetFile();
     emp::File file(compile_filename);
 
+    // If there were no compilation issues, say so.
+    if (file.size() == 0) {
+      if (output.IsHTML()) {
+        out << "<p>No Compilation Errors or Warnings.<br><br>\n";
+      } else {
+        out << "No Compilation Errors or Warnings.\n";
+      }
+      return;
+    }
+
     if (output.IsHTML()) {
       out << "<p>Compile Results for Test:<br><br>\n";
       emp::String size_style = "width:800px;";
@@ -554,7 +564,7 @@ public:
     const auto status = GetStatus();
     bool print_checks = status == TestStatus::FAILED_CHECK || output.HasPassedDetails();
     bool print_code = Failed() || output.HasPassedDetails();
-    bool print_compile = status == TestStatus::FAILED_COMPILE;
+    bool print_compile = status == TestStatus::FAILED_COMPILE || true; // Always print!
     bool print_error = status == TestStatus::FAILED_RUN;
     bool print_input = status == TestStatus::MISSED_ERROR || status == TestStatus::FAILED_OUTPUT || output.HasPassedDetails();
     bool print_diff = status == TestStatus::FAILED_RUN || status == TestStatus::FAILED_OUTPUT;
