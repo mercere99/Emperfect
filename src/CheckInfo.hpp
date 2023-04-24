@@ -32,19 +32,19 @@ public:
     emp::notify::TestError(emp::find_any_of(test, 0, "&&", "||") != emp::String::npos,
       location, ": Unit test checks do not allow \"&&\" or \"||\".");
 
-    size_t comp_pos = emp::find_any_of(test, 0, "==", "!=", "<", "<=", ">", ">=");
+    size_t comp_pos = emp::find_any_of(test, 0, " == ", " != ", " < ", " <= ", " > ", " >= ");
     bool has_comp = (comp_pos != emp::String::npos);
 
     if (has_comp) {
       // Make sure it doesn't have TWO comparisons.
       emp::notify::TestError(
-        emp::find_any_of(test, comp_pos+2, "==", "!=", "<", "<=", ">", ">=") != emp::String::npos,
+        emp::find_any_of(test, comp_pos+3, " == ", " != ", " < ", " <= ", " > ", " >= ") != emp::String::npos,
         location, ": Unit test checks can have only one comparison.");
 
-      size_t comp_size = (test[comp_pos+1] == '=') ? 2 : 1;
-      comparator = test.substr(comp_pos, comp_size);
+      size_t comp_size = (test[comp_pos+2] == '=') ? 2 : 1;
+      comparator = test.substr(comp_pos+1, comp_size);
       lhs = test.substr(0, comp_pos);
-      rhs = test.substr(comp_pos+comp_size);
+      rhs = test.substr(comp_pos+comp_size+2);
       lhs.Trim();
       rhs.Trim();
     }
