@@ -359,13 +359,13 @@ public:
     // If there is no code, don't worry about printing it.
     if (code.size() == 0) return;
     // {
-    //   out << "No test sourcecode.\n";
+    //   out << "No test source code.\n";
     //   if (output.IsHTML()) out << "<br><br>";
     //   return;
     // }
 
     if (output.IsHTML()) {
-      out << "Sourcecode for Test:<br><br>\n";
+      out << "Source Code For Test:<br><br>\n";
       out << "<table style=\"background-color:#E3E0CF;\"><tr><td><pre>\n\n";
       for (auto line : code) {
         const bool highlight = false; // Passed(0);
@@ -375,7 +375,7 @@ public:
       }
       out << "</pre></tr></table>\n";
     } else {
-      out << "Sourcecode for Test:\n\n";
+      out << "Source Code For Test:\n\n";
       for (auto line : code) out << line << "\n";
     }
   }
@@ -443,9 +443,6 @@ public:
     std::ostream & out = output.GetFile();
 
     if (input_filename.size() == 0) { // No inputs to print.
-      out << "No input for test.";
-      if (output.IsHTML()) out << "<br>";
-      out << "\n";
       return;
     }
 
@@ -563,11 +560,11 @@ public:
     // Decide what else we print based on the status.
     const auto status = GetStatus();
     bool print_checks = status == TestStatus::FAILED_CHECK || output.HasPassedDetails();
-    bool print_code = Failed() || output.HasPassedDetails();
-    bool print_compile = status == TestStatus::FAILED_COMPILE || true; // Always print!
+    bool print_code = Failed() || output.HasPassedDetails() || true; // Always print!
+    bool print_compile = status == TestStatus::FAILED_COMPILE;
     bool print_error = status == TestStatus::FAILED_RUN;
-    bool print_input = status == TestStatus::MISSED_ERROR || status == TestStatus::FAILED_OUTPUT || output.HasPassedDetails();
-    bool print_diff = status == TestStatus::FAILED_RUN || status == TestStatus::FAILED_OUTPUT;
+    bool print_input = status == TestStatus::MISSED_ERROR || status == TestStatus::FAILED_OUTPUT || output.HasPassedDetails() || true; // Always print!
+    bool print_diff = status == TestStatus::FAILED_RUN || status == TestStatus::FAILED_OUTPUT || true; // Always print! 
 
     if (print_checks) PrintResult_Checks(output);
     if (print_code) PrintCode(output);
