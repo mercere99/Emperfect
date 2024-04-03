@@ -218,6 +218,7 @@ public:
       << "#include <tuple>\n"
       << "#include <type_traits>\n"
       << "#include <vector>\n"
+      << "#include <cstdint>\n"
       << "\n"
       << "// Extract information about a function.\n"
       << "template <typename... Ts> struct FunInfo;\n"
